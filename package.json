@@ -1,0 +1,217 @@
+{
+  "name": "go-to-endpoints",
+  "displayName": "Go To Endpoints",
+  "description": "快速搜索和导航到Java Controller和Feign端点，支持复制API路径。",
+  "version": "0.0.2",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/go-to-endpoints"
+  },
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Navigation"
+  ],
+  "activationEvents": [
+    "onLanguage:java",
+    "workspaceContains:**/*.java"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "gotoEndpoints.search",
+        "title": "Go To Endpoint: Search Endpoints"
+      },
+      {
+        "command": "gotoEndpoints.scanCurrentFile",
+        "title": "Go To Endpoint: 扫描当前Java文件"
+      },
+      {
+        "command": "gotoEndpoints.scanWorkspace",
+        "title": "Go To Endpoint: 扫描整个工作区"
+      },
+      {
+        "command": "gotoEndpoints.refreshEndpointTree",
+        "title": "Go To Endpoint: 刷新端点树视图",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "gotoEndpoints.openEndpoint",
+        "title": "Go To Endpoint: 打开端点定义"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "endpoint-explorer",
+          "title": "端点浏览器",
+          "icon": "resources/icons/endpoint.svg"
+        }
+      ]
+    },
+    "views": {
+      "endpoint-explorer": [
+        {
+          "id": "gotoEndpointsExplorer",
+          "name": "端点浏览器",
+          "icon": "resources/icons/endpoint.svg",
+          "contextualTitle": "API端点"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "gotoEndpoints.refreshEndpointTree",
+          "when": "view == gotoEndpointsExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "gotoEndpoints.scanWorkspace",
+          "when": "view == gotoEndpointsExplorer",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "gotoEndpoints.scanCurrentFile",
+          "when": "resourceLangId == java",
+          "group": "1_gotoEndpoints"
+        },
+        {
+          "command": "gotoEndpoints.scanWorkspace",
+          "group": "1_gotoEndpoints"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "gotoEndpoints.scanCurrentFile",
+          "when": "resourceLangId == java",
+          "group": "1_gotoEndpoints"
+        },
+        {
+          "command": "gotoEndpoints.scanWorkspace",
+          "group": "1_gotoEndpoints"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "gotoEndpoints.search",
+        "key": "ctrl+shift+\\",
+        "mac": "cmd+shift+\\"
+      },
+      {
+        "command": "gotoEndpoints.scanCurrentFile",
+        "key": "ctrl+shift+j",
+        "mac": "cmd+shift+j"
+      },
+      {
+        "command": "gotoEndpoints.scanWorkspace",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k"
+      }
+    ],
+    "configuration": {
+      "title": "Go To Endpoints",
+      "properties": {
+        "gotoEndpoints.includeGlobs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/*.java"
+          ],
+          "description": "Glob patterns for files to include in the endpoint index."
+        },
+        "gotoEndpoints.excludeGlobs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/node_modules/**",
+            "**/target/**",
+            "**/build/**",
+            "**/.*/**",
+            "**/*Test.java"
+          ],
+          "description": "Glob patterns for files or folders to exclude from the endpoint index."
+        },
+        "gotoEndpoints.enableCache": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用缓存以加速索引（重新启动后无需再次扫描未更改的文件）"
+        },
+        "gotoEndpoints.concurrencyLimit": {
+          "type": "number",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "并发解析文件的数量限制（提高可以加速索引，但会增加内存使用）"
+        },
+        "gotoEndpoints.autoIndex": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否在扩展启动时自动索引全部文件"
+        },
+        "gotoEndpoints.usePrefilter": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否在解析前预先过滤不包含控制器注解的文件（提高速度）"
+        },
+        "gotoEndpoints.fileExtensions": {
+          "type": "array",
+          "default": [".java"],
+          "description": "要扫描的文件扩展名（默认为.java）"
+        },
+        "gotoEndpoints.enableDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否启用API端点的行装饰器（高亮和悬停提示）"
+        },
+        "gotoEndpoints.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否启用API端点的复制按钮（CodeLens）"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.96.0",
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "esbuild": "^0.25.1",
+    "eslint": "^9.23.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@types/minimatch": "^5.1.2",
+    "java-parser": "^2.3.3",
+    "minimatch": "^10.0.1"
+  }
+}
