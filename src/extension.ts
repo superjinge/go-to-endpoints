@@ -14,6 +14,7 @@ import { EndpointCodeLensProvider, registerCodeLensCommand } from './features/co
 // import { showSearchInput } from './features/search'; // Removed incorrect import path
 // import { scanAndNavigateToFile } from './features/scanCurrentFile';
 import { EndpointTreeProvider, registerEndpointTreeCommands } from './features/endpointTreeProvider';
+import { showInfo, showWarning, showError } from './utils/messageUtils';
 
 let fileWatcher: FileWatcher | null = null; // 启用文件监听变量
 let statusBarItem: vscode.StatusBarItem;
@@ -114,13 +115,13 @@ export async function activate(context: vscode.ExtensionContext) {
 					
 					await indexManager.updateFile(filePath);
 					const endpoints = indexManager.getEndpointsForFile(filePath) || [];
-					vscode.window.showInformationMessage(`扫描完成，在当前文件中找到 ${endpoints.length} 个端点`);
+					showInfo(`扫描完成，在当前文件中找到 ${endpoints.length} 个端点`);
 				} else {
-					vscode.window.showWarningMessage('没有打开的Java文件，请先打开Java文件');
+					showWarning('没有打开的Java文件，请先打开Java文件');
 				}
 			} catch (error: any) {
 				console.error('[GoToEndpoint] 扫描当前文件失败:', error);
-				vscode.window.showErrorMessage(`扫描失败: ${error?.message || '未知错误'}`);
+				showError(`扫描失败: ${error?.message || '未知错误'}`);
 			}
 		});
 	});
@@ -136,13 +137,30 @@ export async function activate(context: vscode.ExtensionContext) {
 		}, async (progress, token) => {
 			progress.report({ message: '开始扫描Java文件' });
 			try {
-				// 恢复原本的扫描逻辑，使用缓存进行增量更新
+				// 首先清空缓存
+				console.log('[GoToEndpoint] 清除缓存并重建索引...');
+				indexManager.index.clear();
+				indexManager.initializeEmptyCache();
+				
+				// 删除缓存文件
+				try {
+					const fs = require('fs');
+					const cachePath = indexManager.getCachePath();
+					if (fs.existsSync(cachePath)) {
+						fs.unlinkSync(cachePath);
+						console.log('[GoToEndpoint] 缓存文件已删除');
+					}
+				} catch (error) {
+					console.error('[GoToEndpoint] 删除缓存文件时出错:', error);
+				}
+				
+				// 然后重建索引
 				await indexManager.buildIndex(token);
-				vscode.window.showInformationMessage(`扫描完成，找到 ${indexManager.getEndpointCount()} 个端点`);
+				showInfo(`扫描完成，找到 ${indexManager.getEndpointCount()} 个端点`);
 			} catch (error: any) {  // 显式类型标注
 				if (!token.isCancellationRequested) {
 					const errorMessage = error?.message || '未知错误';
-					vscode.window.showErrorMessage(`扫描失败: ${errorMessage}`);
+					showError(`扫描失败: ${errorMessage}`);
 				}
 			}
 		});
@@ -150,7 +168,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(scanWorkspaceDisposable);
 	console.log('[GoToEndpoint] Scan workspace command registered.');
 
-	// 重新添加清除缓存的命令，但作为单独功能
+	// 注册清除缓存并重新扫描的命令
 	const clearCacheDisposable = vscode.commands.registerCommand('gotoEndpoints.clearCacheAndRebuild', () => {
 		// 首先询问用户是否确定要清除缓存
 		vscode.window.showWarningMessage(
@@ -185,11 +203,11 @@ export async function activate(context: vscode.ExtensionContext) {
 						// 然后重建索引
 						progress.report({ message: '重新扫描所有Java文件' });
 						await indexManager.buildIndex(token);
-						vscode.window.showInformationMessage(`缓存已清除，重新扫描完成，找到 ${indexManager.getEndpointCount()} 个端点`);
+						showInfo(`缓存已清除，重新扫描完成，找到 ${indexManager.getEndpointCount()} 个端点`);
 					} catch (error: any) {
 						if (!token.isCancellationRequested) {
 							const errorMessage = error?.message || '未知错误';
-							vscode.window.showErrorMessage(`清除缓存失败: ${errorMessage}`);
+							showError(`清除缓存失败: ${errorMessage}`);
 						}
 					}
 				});
@@ -214,7 +232,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	console.log('[GoToEndpoint] Extension activated successfully.'); // Simplified message
 
 	// 添加提示，告知用户插件已启动
-	vscode.window.showInformationMessage('Go To Endpoints 已启动！性能优化模式已启用：仅显示当前Java文件的端点。右键点击Java文件选择"扫描当前Java文件"，或使用Ctrl+Shift+J快捷键立即扫描。');
+	showInfo('Go To Endpoints 已启动！性能优化模式已启用：仅显示当前Java文件的端点。右键点击Java文件选择"扫描当前Java文件"，或使用Ctrl+Shift+J快捷键立即扫描。');
 }
 
 /**

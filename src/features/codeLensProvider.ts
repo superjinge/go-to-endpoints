@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { IndexManager } from '../indexer/indexManager';
 import { EndpointInfo } from '../parser/models';
+import { showInfo } from '../utils/messageUtils';
 
 const COPY_COMMAND_ID = 'gotoEndpoints.copyPath';
 
@@ -354,11 +355,16 @@ export function registerCodeLensCommand(context: vscode.ExtensionContext) {
             if (method) {
                 message += ` [${method}]`;
             }
+            
+            // 构建详细信息
+            let detail = undefined;
             if (className && methodName) {
-                message += `\n(${className}.${methodName})`;
+                detail = `${className}.${methodName}`;
             }
             
-            vscode.window.showInformationMessage(message, { detail: '路径已复制到剪贴板' });
+            // 使用自动消失的通知
+            showInfo(message, detail);
+            
             console.log(`[GoToEndpoint] Copied path to clipboard: ${path}`);
         } else {
             console.error('[GoToEndpoint] No path provided to copy command');
