@@ -24,7 +24,7 @@ export interface EndpointIndexListener {
 }
 
 export class IndexManager {
-  private index: Map<string, EndpointInfo[]> = new Map(); // Key: file path, Value: endpoints in that file
+  public index: Map<string, EndpointInfo[]> = new Map(); // Key: file path, Value: endpoints in that file
   private parser: AstJavaParser;
   private isBuilding: boolean = false;
   private indexListeners: EndpointIndexListener[] = [];
@@ -126,7 +126,7 @@ export class IndexManager {
   /**
    * 初始化空的缓存对象
    */
-  private initializeEmptyCache(): void {
+  public initializeEmptyCache(): void {
     this.cache = {
       version: this.CACHE_VERSION,
       lastUpdate: Date.now(),
@@ -157,7 +157,7 @@ export class IndexManager {
   /**
    * 获取缓存文件路径
    */
-  private getCachePath(): string {
+  public getCachePath(): string {
     const storageUri = this.getStoragePath();
     return path.join(storageUri, this.CACHE_FILE_NAME);
   }
@@ -235,9 +235,6 @@ export class IndexManager {
     
     console.log("[GoToEndpoint] Starting index build process...");
     this.isBuilding = true;
-    
-    // 不再清空索引，而是先保留原有索引
-    // this.index.clear();
 
     try {
         await vscode.window.withProgress(
@@ -276,10 +273,12 @@ export class IndexManager {
 
               console.log(`[GoToEndpoint] Starting index build for ${totalFiles} files.`);
 
-              // 使用用户配置的并发数
+              // 大幅增加并发数
               const CONCURRENCY_LIMIT = config.get<number>('concurrencyLimit', 20);
+              // 我们使用实际配置值的3倍，显著提高并发度，但最大不超过100
+              const actualConcurrencyLimit = Math.min(CONCURRENCY_LIMIT * 3, 100);
               const usePrefilter = config.get<boolean>('usePrefilter', true);
-              console.log(`[GoToEndpoint] Using concurrency limit: ${CONCURRENCY_LIMIT}, prefilter: ${usePrefilter ? 'enabled' : 'disabled'}`);
+              console.log(`[GoToEndpoint] Using concurrency limit: ${actualConcurrencyLimit} (config value * 3), prefilter: ${usePrefilter ? 'enabled' : 'disabled'}`);
               
               let processedCount = 0;
               let parsedCount = 0;
@@ -287,8 +286,8 @@ export class IndexManager {
               let cachedCount = 0; // 记录使用缓存的文件数量
               let skippedCount = 0; // 记录通过预过滤跳过的文件
               
-              // 按批次处理文件
-              for (let i = 0; i < allJavaFiles.length; i += CONCURRENCY_LIMIT) {
+              // 减少批次大小，提高处理速度
+              for (let i = 0; i < allJavaFiles.length; i += actualConcurrencyLimit) {
                 // 检查是否取消
                 if (cancellationToken?.isCancellationRequested) {
                   console.log("[GoToEndpoint] Index build cancelled by user.");
@@ -296,10 +295,10 @@ export class IndexManager {
                 }
                 
                 // 获取当前批次的文件
-                const batch = allJavaFiles.slice(i, i + CONCURRENCY_LIMIT);
+                const batch = allJavaFiles.slice(i, i + actualConcurrencyLimit);
                 // 减少日志输出，只在每10个批次时输出一次日志
-                if ((i / CONCURRENCY_LIMIT) % 10 === 0) {
-                  console.log(`[GoToEndpoint] Processing batch ${i / CONCURRENCY_LIMIT + 1}/${Math.ceil(allJavaFiles.length / CONCURRENCY_LIMIT)} with ${batch.length} files`);
+                if ((i / actualConcurrencyLimit) % 10 === 0) {
+                  console.log(`[GoToEndpoint] Processing batch ${i / actualConcurrencyLimit + 1}/${Math.ceil(allJavaFiles.length / actualConcurrencyLimit)} with ${batch.length} files`);
                 }
                 
                 // 并行处理当前批次
@@ -775,6 +774,36 @@ export class IndexManager {
       allEndpoints.push(...endpointsInFile);
     }
     return allEndpoints;
+  }
+
+  /**
+   * 清除缓存并重建索引
+   * 当需要强制刷新时使用
+   */
+  public clearCacheAndRebuild(): void {
+    console.log('[GoToEndpoint] 清除缓存并重建索引...');
+    
+    // 清空索引和缓存
+    this.index.clear();
+    this.initializeEmptyCache();
+    
+    // 删除缓存文件
+    try {
+      const fs = require('fs');
+      const cachePath = this.getCachePath();
+      if (fs.existsSync(cachePath)) {
+        fs.unlinkSync(cachePath);
+        console.log('[GoToEndpoint] 缓存文件已删除');
+      }
+    } catch (error) {
+      console.error('[GoToEndpoint] 删除缓存文件时出错:', error);
+    }
+    
+    // 重新构建索引
+    this.buildIndex().then(() => {
+      console.log('[GoToEndpoint] 索引重建完成');
+      vscode.window.showInformationMessage('GoToEndpoint: 缓存已清除，索引重建完成');
+    });
   }
 
   /**

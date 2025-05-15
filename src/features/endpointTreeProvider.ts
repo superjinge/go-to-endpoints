@@ -43,7 +43,7 @@ export class EndpointTreeItem extends vscode.TreeItem {
             case EndpointTreeItemType.ControllerEndpoint:
                 this.iconPath = new vscode.ThemeIcon('symbol-method');
                 if (endpoint) {
-                    const methodDisplay = endpoint.httpMethod === "ANY" ? "ALL" : endpoint.httpMethod;
+                    const methodDisplay = endpoint.httpMethod;
                     const method = methodDisplay ? `[${methodDisplay}]` : '';
                     this.tooltip = `${endpoint.fullPath} ${method}\n${endpoint.className}.${endpoint.methodName}\n${endpoint.filePath}`;
                     this.description = `${endpoint.className}.${endpoint.methodName}`;
@@ -58,7 +58,7 @@ export class EndpointTreeItem extends vscode.TreeItem {
             case EndpointTreeItemType.FeignEndpoint:
                 this.iconPath = new vscode.ThemeIcon('combine');
                 if (endpoint) {
-                    const methodDisplay = endpoint.httpMethod === "ANY" ? "ALL" : endpoint.httpMethod;
+                    const methodDisplay = endpoint.httpMethod;
                     const method = methodDisplay ? `[${methodDisplay}]` : '';
                     this.tooltip = `${endpoint.fullPath} ${method}\n${endpoint.className}.${endpoint.methodName}\n${endpoint.filePath}`;
                     this.description = `${endpoint.className}.${endpoint.methodName}`;
@@ -101,13 +101,33 @@ export class EndpointTreeProvider implements vscode.TreeDataProvider<EndpointTre
         // 监听索引更新事件，刷新树视图
         indexManager.onIndexUpdated(() => {
             this.refresh();
+            
+            // 清除当前文件的缓存，确保下次获取最新数据
+            if (this.currentFilePath) {
+                this._fileEndpointCache.delete(this.currentFilePath);
+                console.log(`[GoToEndpoint] 清除端点树缓存以响应索引更新: ${this.currentFilePath}`);
+            }
         });
         
         // 监听活动编辑器变化，更新当前文件
         vscode.window.onDidChangeActiveTextEditor(editor => {
             if (editor && editor.document.languageId === 'java') {
                 this.currentFilePath = editor.document.uri.fsPath;
+                // 清除缓存，确保获取最新数据
+                this._fileEndpointCache.delete(this.currentFilePath);
                 this.refresh();
+            }
+        });
+        
+        // 监听文档保存，刷新对应文件的端点
+        vscode.workspace.onDidSaveTextDocument(document => {
+            if (document.languageId === 'java') {
+                // 如果保存的是当前文件，清除缓存并刷新视图
+                if (document.uri.fsPath === this.currentFilePath) {
+                    console.log(`[GoToEndpoint] 文件保存，刷新端点树视图: ${document.uri.fsPath}`);
+                    this._fileEndpointCache.delete(document.uri.fsPath);
+                    this.refresh();
+                }
             }
         });
         
@@ -286,7 +306,7 @@ export class EndpointTreeProvider implements vscode.TreeDataProvider<EndpointTre
             // 然后按端点路径排序
             return a.fullPath.localeCompare(b.fullPath);
         }).forEach(endpoint => {
-            let methodValue = endpoint.httpMethod === "ANY" ? "ALL" : endpoint.httpMethod;
+            let methodValue = endpoint.httpMethod;
             let methodLabel = methodValue ? `[${methodValue}] ` : '';
             let isFeign = endpoint.className && endpoint.className.toLowerCase().includes('feign');
             

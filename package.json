@@ -31,7 +31,8 @@
       },
       {
         "command": "gotoEndpoints.scanWorkspace",
-        "title": "Go To Endpoint: 扫描整个工作区"
+        "title": "Go To Endpoint: 清除缓存并扫描整个工作区",
+        "icon": "$(refresh)"
       },
       {
         "command": "gotoEndpoints.refreshEndpointTree",
@@ -149,9 +150,9 @@
         },
         "gotoEndpoints.concurrencyLimit": {
           "type": "number",
-          "default": 20,
+          "default": 50,
           "minimum": 1,
-          "maximum": 100,
+          "maximum": 200,
           "description": "并发解析文件的数量限制（提高可以加速索引，但会增加内存使用）"
         },
         "gotoEndpoints.autoIndex": {

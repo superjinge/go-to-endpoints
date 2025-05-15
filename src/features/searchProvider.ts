@@ -76,9 +76,6 @@ export class SearchProvider {
             const quickPickItems: vscode.QuickPickItem[] = results.map(endpoint => {
                 // 优化HTTP方法显示
                 let httpMethodDisplay = endpoint.httpMethod;
-                if (httpMethodDisplay === 'ANY') {
-                    httpMethodDisplay = 'ALL';
-                }
                 
                 return {
                     label: `${endpoint.fullPath} ((${endpoint.className})[${httpMethodDisplay}])`,

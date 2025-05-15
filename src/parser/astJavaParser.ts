@@ -460,6 +460,57 @@ function defineVisitorClass() {
                                                 console.log(`[AST Parser] Found HTTP method from annotation: ${httpMethod}`);
                                             }
                                         }
+                                        
+                                        // 增强对RequestMethod.XXX形式的识别
+                                        if (httpMethod === 'ANY') {
+                                            // 尝试递归查找RequestMethod枚举中的方法名
+                                            const findRequestMethodEnum = (node: any): string | null => {
+                                                if (!node || typeof node !== 'object') return null;
+                                                
+                                                // 在表达式中查找形如RequestMethod.GET的标识符
+                                                if (node.image && typeof node.image === 'string') {
+                                                    // 直接检查常见的HTTP方法
+                                                    const methodMap: {[key: string]: string} = {
+                                                        'GET': 'GET',
+                                                        'POST': 'POST',
+                                                        'PUT': 'PUT',
+                                                        'DELETE': 'DELETE',
+                                                        'PATCH': 'PATCH',
+                                                        'HEAD': 'HEAD',
+                                                        'OPTIONS': 'OPTIONS'
+                                                    };
+                                                    
+                                                    const upperImage = node.image.toUpperCase();
+                                                    if (methodMap[upperImage]) {
+                                                        return methodMap[upperImage];
+                                                    }
+                                                }
+                                                
+                                                // 递归检查子节点
+                                                if (node.children) {
+                                                    for (const key in node.children) {
+                                                        const children = node.children[key];
+                                                        if (Array.isArray(children)) {
+                                                            for (const child of children) {
+                                                                const result = findRequestMethodEnum(child);
+                                                                if (result) return result;
+                                                            }
+                                                        } else {
+                                                            const result = findRequestMethodEnum(children);
+                                                            if (result) return result;
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                return null;
+                                            };
+                                            
+                                            const foundMethod = findRequestMethodEnum(pair.children.elementValue[0]);
+                                            if (foundMethod) {
+                                                httpMethod = foundMethod;
+                                                console.log(`[AST Parser] Found HTTP method from RequestMethod enum: ${httpMethod}`);
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -497,18 +548,21 @@ function defineVisitorClass() {
                             const endColumn = annotationLocation?.endColumn ?? methodEndColumn;
                             
                             // 保存原始路径数据
+                            const rawPath = methodPath ? (classPath ? `${classPath}${methodPath.startsWith('/') ? '' : '/'}${methodPath}` : methodPath) : classPath;
+                            
+                            // Create endpoint
                             const endpoint: EndpointInfo = {
                                 fullPath,
-                                originalClassPath: classPath,
+                                originalClassPath: classPath, 
                                 originalMethodPath: methodPath,
-                                rawPath: methodPath ? (classPath ? `${classPath}${methodPath.startsWith('/') ? '' : '/'}${methodPath}` : methodPath) : classPath,
+                                rawPath,
                                 httpMethod,
                                 method: httpMethod,
                                 className: this.currentClassName, 
                                 methodName, 
                                 filePath: this.currentFilePath, 
-                                startLine, 
-                                startColumn, 
+                                startLine: startLine,
+                                startColumn: startColumn,
                                 line: startLine,
                                 column: startColumn,
                                 endLine, 
@@ -566,7 +620,8 @@ function parseJavaFileWithRegex(filePath: string, fileContent: string): Endpoint
             }
             
             // Find method level request mappings
-            const methodRegex = /@(?:(Get|Post|Put|Delete|Patch)Mapping|RequestMapping)(?:\s*\(\s*(?:value\s*=)?\s*["']([^"']*)["']\s*\)|\s*\(\s*path\s*=\s*["']([^"']*)["']\s*\)|\([^)]*\)|\s*)/g;
+            // 修改正则表达式，捕获整个注解包括类型和参数
+            const methodRegex = /@((?:Get|Post|Put|Delete|Patch)Mapping|RequestMapping)(\s*\([^)]*\)|\s*)/g;
             const methodNameRegex = /\s*(public|private|protected)?\s*(?:<[^>]*>)?\s*\w+\s+(\w+)\s*\(/g;
             
             let methodMatch;
@@ -574,15 +629,83 @@ function parseJavaFileWithRegex(filePath: string, fileContent: string): Endpoint
             
             while ((methodMatch = methodRegex.exec(fileContent)) !== null) {
                 const annotationPosition = methodMatch.index;
+                const annotationType = methodMatch[1] || '';  // Get, Post, RequestMapping等
+                const annotationParams = methodMatch[2] || ''; // 参数部分，包括括号
                 
-                // Determine HTTP method
+                console.log(`[Regex Parser] Found annotation: ${annotationType} with params: ${annotationParams}`);
+                
+                // 确定HTTP方法 - 根据注解类型初步判断
                 let httpMethod = 'ANY';
-                if (methodMatch[1]) {
-                    httpMethod = methodMatch[1].toUpperCase();
+                if (annotationType !== 'RequestMapping') {
+                    // 对GetMapping, PostMapping等直接确定HTTP方法
+                    httpMethod = annotationType.replace('Mapping', '').toUpperCase();
+                    console.log(`[Regex Parser] HTTP method determined from annotation type: ${httpMethod}`);
                 }
                 
-                // Extract path
-                const methodPath = methodMatch[2] || methodMatch[3] || '';
+                // 提取路径和其他参数
+                let methodPath = '';
+                
+                // 处理不同形式的路径
+                if (annotationParams) {
+                    // 1. 处理带参数的情况如 @RequestMapping(value="/path", method=RequestMethod.GET)
+                    if (annotationParams.includes('(') && annotationParams.includes(')')) {
+                        // 提取完整参数内容，移除括号
+                        const paramsContent = annotationParams.substring(
+                            annotationParams.indexOf('(') + 1, 
+                            annotationParams.lastIndexOf(')')
+                        ).trim();
+                        
+                        console.log(`[Regex Parser] Annotation params content: ${paramsContent}`);
+                        
+                        // 处理参数内容
+                        if (paramsContent) {
+                            // 2. 查找value或path参数 - 形式: value="/path" 或 path="/path"
+                            const valuePathRegex = /(?:value|path)\s*=\s*["']([^"']*)["']/i;
+                            const valueMatch = valuePathRegex.exec(paramsContent);
+                            if (valueMatch && valueMatch[1]) {
+                                methodPath = valueMatch[1];
+                                console.log(`[Regex Parser] Path extracted from value/path param: ${methodPath}`);
+                            } 
+                            // 3. 查找直接字符串 - 形式: "/path"
+                            else if (/^["'][^"']*["']$/.test(paramsContent.trim())) {
+                                methodPath = paramsContent.trim().replace(/^["']|["']$/g, '');
+                                console.log(`[Regex Parser] Path extracted from direct string: ${methodPath}`);
+                            }
+                            // 4. 查找直接字符串(带引号但有额外空格) - 形式: "  /path  "
+                            else if (/^\s*["'][^"']*["']\s*$/.test(paramsContent)) {
+                                methodPath = paramsContent.trim().replace(/^["']|["']$/g, '');
+                                console.log(`[Regex Parser] Path extracted from quoted string with spaces: ${methodPath}`);
+                            }
+                            // 5. 查找method参数 - 对RequestMapping处理方法参数
+                            if (httpMethod === 'ANY' && annotationType === 'RequestMapping' && 
+                                paramsContent.includes('method')) {
+                                
+                                // 匹配形如 method=RequestMethod.GET 或 method = RequestMethod.GET 的模式
+                                const methodParamRegex = /method\s*=\s*(?:RequestMethod\.)?([A-Z_]+)/i;
+                                const methodParamMatch = methodParamRegex.exec(paramsContent);
+                                
+                                if (methodParamMatch && methodParamMatch[1]) {
+                                    const extractedMethod = methodParamMatch[1].toUpperCase();
+                                    // 验证提取的方法是否有效
+                                    if (['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'].includes(extractedMethod)) {
+                                        httpMethod = extractedMethod;
+                                        console.log(`[Regex Parser] HTTP method extracted from method param: ${httpMethod}`);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // 6. 处理无参数带引号的直接形式 - @RequestMapping("/path")，但被上面正则捕获为整体
+                    else if (annotationParams.includes('"') || annotationParams.includes("'")) {
+                        // 尝试提取引号中的内容作为路径
+                        const directPathRegex = /["']([^"']*)["']/;
+                        const directMatch = directPathRegex.exec(annotationParams);
+                        if (directMatch && directMatch[1]) {
+                            methodPath = directMatch[1];
+                            console.log(`[Regex Parser] Path extracted from direct annotation: ${methodPath}`);
+                        }
+                    }
+                }
                 
                 // Find method name (search forward from annotation position)
                 methodNameRegex.lastIndex = annotationPosition;
@@ -590,6 +713,7 @@ function parseJavaFileWithRegex(filePath: string, fileContent: string): Endpoint
                 
                 if (methodNameMatch) {
                     const methodName = methodNameMatch[2];
+                    console.log(`[Regex Parser] Found method: ${methodName}, path: ${methodPath}, HTTP method: ${httpMethod}`);
                     
                     // Construct full path
                     const fullPath = joinPaths(classPath, methodPath);
@@ -597,10 +721,9 @@ function parseJavaFileWithRegex(filePath: string, fileContent: string): Endpoint
                     // 保存原始路径数据
                     const rawPath = methodPath ? (classPath ? `${classPath}${methodPath.startsWith('/') ? '' : '/'}${methodPath}` : methodPath) : classPath;
                     
-                    // 使用注解的位置，而不是近似的方法位置
-                    // 获取注解所在行，这样按钮就会显示在注解上
+                    // 使用注解的位置，转换为行号
                     const contentBeforeAnnotation = fileContent.substring(0, annotationPosition);
-                    const annotationLine = contentBeforeAnnotation.split('\n').length;
+                    const annotationLine = (contentBeforeAnnotation.match(/\n/g) || []).length + 1;
                     
                     // Create endpoint
                     const endpoint: EndpointInfo = {
@@ -622,13 +745,13 @@ function parseJavaFileWithRegex(filePath: string, fileContent: string): Endpoint
                     };
                     
                     endpoints.push(endpoint);
-                    console.log(`[Regex Parser] Found endpoint: ${httpMethod} ${fullPath} (${className}.${methodName})`);
-                        }
+                    console.log(`[Regex Parser] Created endpoint: ${httpMethod} ${fullPath} (${className}.${methodName})`);
+                }
                 
                 // Update last position to avoid repeats
                 lastIndex = methodMatch.index + methodMatch[0].length;
                 methodRegex.lastIndex = lastIndex;
-                    }
+            }
         } else {
             console.log(`[Regex Parser] Class is not a Controller: ${className}`);
         }
@@ -654,23 +777,71 @@ export class AstJavaParser {
     loadModules();
   }
   
-  // Ensure modules are loaded before parsing
+  /**
+   * 使用Java解析器解析Java文件
+   * @param filePath 文件路径
+   * @param fileContent 文件内容
+   * @returns 解析出的端点信息
+   */
   async parseJavaFile(filePath: string, fileContent: string): Promise<EndpointInfo[]> {
+    console.log(`[GoToEndpoint] Parsing Java file: ${filePath}`);
+    
+    // 快速预检查，如果文件内容不包含任何相关注解，直接跳过AST解析以提高性能
+    if (!this.hasRelevantAnnotations(fileContent)) {
+      console.log(`[GoToEndpoint] File ${filePath} does not contain any relevant annotations, skipping.`);
+      return [];
+    }
+    
+    // 首先尝试使用正则表达式解析，这通常更快
+    // 如果失败才使用AST解析，由于AST解析对很大的文件可能会很慢
+    try {
+      const regexEndpoints = parseJavaFileWithRegex(filePath, fileContent);
+      if (regexEndpoints.length > 0) {
+        console.log(`[GoToEndpoint] Successfully parsed ${regexEndpoints.length} endpoints using regex parser from ${filePath}`);
+        return regexEndpoints;
+      }
+      
+      // 正则表达式没有找到端点，尝试使用AST解析
+      console.log(`[GoToEndpoint] No endpoints found with regex parser, trying AST parser for ${filePath}`);
+      const astEndpoints = await this.parseJavaFileWithAst(filePath, fileContent);
+      console.log(`[GoToEndpoint] AST parser found ${astEndpoints.length} endpoints from ${filePath}`);
+      return astEndpoints;
+    } catch (error) {
+      console.error(`[GoToEndpoint] Error parsing Java file ${filePath}:`, error);
+      // 出错时仍然尝试AST解析作为备选
+      try {
+        const astEndpoints = await this.parseJavaFileWithAst(filePath, fileContent);
+        console.log(`[GoToEndpoint] Fallback AST parser found ${astEndpoints.length} endpoints from ${filePath}`);
+        return astEndpoints;
+      } catch (astError) {
+        console.error(`[GoToEndpoint] AST parser also failed for ${filePath}:`, astError);
+        return [];
+      }
+    }
+  }
+  
+  /**
+   * 使用AST解析器解析Java文件
+   * @param filePath 文件路径
+   * @param fileContent 文件内容
+   * @returns 解析出的端点信息
+   */
+  private async parseJavaFileWithAst(filePath: string, fileContent: string): Promise<EndpointInfo[]> {
     console.log(`[GoToEndpoint AST Parser] Parsing file: ${filePath}`);
     
     try {
       // 确保模块已加载
       if (!loadModules()) {
-        console.error("[AST Parser] Failed to load required modules, falling back to regex parser");
-        return parseJavaFileWithRegex(filePath, fileContent);
+        console.error("[AST Parser] Failed to load required modules, failing");
+        return [];
       }
       
       // 再次检查关键依赖
       if (!parse || !EndpointVisitor) {
-        console.error("[AST Parser] Required components not available, falling back to regex parser");
+        console.error("[AST Parser] Required components not available");
         if (!parse) console.error("[AST Parser] parse function is not defined");
         if (!EndpointVisitor) console.error("[AST Parser] EndpointVisitor class is not defined");
-        return parseJavaFileWithRegex(filePath, fileContent);
+        return [];
       }
 
       // 进行解析
@@ -682,8 +853,7 @@ export class AstJavaParser {
         console.log(`[AST Parser] CST parsing successful`);
       } catch (parseError) {
         console.error(`[AST Parser] Error during CST parsing:`, parseError);
-        console.log(`[AST Parser] Falling back to regex parser`);
-        return parseJavaFileWithRegex(filePath, fileContent);
+        return [];
       }
       
       // 创建访问者并处理AST
@@ -695,13 +865,6 @@ export class AstJavaParser {
       
       const endpointCount = visitor.endpoints.length;
       console.log(`[GoToEndpoint AST Parser] Found ${endpointCount} endpoints in ${filePath}`);
-      
-      // 如果AST解析没有找到端点，尝试使用正则表达式
-      if (endpointCount === 0 && fileContent.includes("@Controller") || fileContent.includes("@RestController")) {
-        console.log(`[AST Parser] No endpoints found with AST, but file contains controller annotations`);
-        console.log(`[AST Parser] Falling back to regex parser`);
-        return parseJavaFileWithRegex(filePath, fileContent);
-      }
       
       return visitor.endpoints;
     } catch (error: any) {
@@ -723,9 +886,36 @@ export class AstJavaParser {
            }
       }
       
-      // 尝试使用正则表达式解析
-      console.log(`[AST Parser] Error occurred during AST parsing, falling back to regex parser`);
-      return parseJavaFileWithRegex(filePath, fileContent);
+      throw error; // 重新抛出错误，由调用方处理
     }
+  }
+  
+  /**
+   * 快速检查文件是否包含相关注解
+   * @param fileContent 文件内容
+   * @returns 是否包含相关注解
+   */
+  private hasRelevantAnnotations(fileContent: string): boolean {
+    // 定义要检查的关键注解
+    const relevantAnnotations = [
+      '@Controller',
+      '@RestController',
+      '@RequestMapping',
+      '@GetMapping',
+      '@PostMapping',
+      '@PutMapping',
+      '@DeleteMapping',
+      '@PatchMapping',
+      '@FeignClient'
+    ];
+    
+    // 使用简单的字符串搜索而不是正则表达式以提高性能
+    for (const annotation of relevantAnnotations) {
+      if (fileContent.includes(annotation)) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 } 

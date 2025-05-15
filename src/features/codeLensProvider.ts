@@ -156,7 +156,7 @@ export class EndpointCodeLensProvider implements vscode.CodeLensProvider {
                 const decoration: vscode.DecorationOptions = {
                     range: fullLineRange,
                     hoverMessage: new vscode.MarkdownString(
-                        `**API路径:** ${endpoint.originalMethodPath || endpoint.originalClassPath || endpoint.fullPath}\n\n` +
+                        `**API路径:** ${endpoint.fullPath}\n\n` +
                         `**HTTP方法:** ${endpoint.httpMethod}`
                     )
                 };
@@ -231,11 +231,11 @@ export class EndpointCodeLensProvider implements vscode.CodeLensProvider {
                 
                 // 创建复制命令
                 const httpMethod = endpoint.httpMethod;
-                const displayMethod = httpMethod === "ANY" ? "ALL" : httpMethod;
+                const displayMethod = httpMethod;
                 
-                // 优先使用原始方法路径，这是直接从注解中提取的，没有经过处理
-                // 对于只有类路径没有方法路径的情况，使用类路径
-                const pathToCopy = endpoint.originalMethodPath || endpoint.originalClassPath || endpoint.fullPath;
+                // 使用标准化的fullPath，与搜索结果保持一致
+                // 这样可以确保复制按钮与搜索功能使用相同的路径格式
+                const pathToCopy = endpoint.fullPath;
                 
                 // 代码前命令 - 详细版
                 const indentCommand: vscode.Command = {

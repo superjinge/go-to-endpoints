@@ -47,17 +47,26 @@ export async function scanAndNavigateToFile(indexManager: IndexManager) {
             console.log(`[GoToEndpoint] File content sample (first 100 chars): ${fileContent.substring(0, 100)}`);
             
             // 检查文件中是否包含关键注解 (简单文本搜索)
-            const hasController = fileContent.includes('@Controller') || fileContent.includes('@RestController');
-            const hasRequestMapping = fileContent.includes('@RequestMapping');
-            const hasGetMapping = fileContent.includes('@GetMapping');
-            const hasPostMapping = fileContent.includes('@PostMapping');
+            const annotationsToCheck = [
+                { name: '@Controller/@RestController', check: () => fileContent.includes('@Controller') || fileContent.includes('@RestController') },
+                { name: '@RequestMapping', check: () => fileContent.includes('@RequestMapping') },
+                { name: '@GetMapping', check: () => fileContent.includes('@GetMapping') },
+                { name: '@PostMapping', check: () => fileContent.includes('@PostMapping') },
+                { name: '@PutMapping', check: () => fileContent.includes('@PutMapping') },
+                { name: '@DeleteMapping', check: () => fileContent.includes('@DeleteMapping') },
+                { name: '@PatchMapping', check: () => fileContent.includes('@PatchMapping') },
+                { name: '@FeignClient', check: () => fileContent.includes('@FeignClient') }
+            ];
             
-            console.log(`[GoToEndpoint] Contains @Controller/@RestController: ${hasController}`);
-            console.log(`[GoToEndpoint] Contains @RequestMapping: ${hasRequestMapping}`);
-            console.log(`[GoToEndpoint] Contains @GetMapping: ${hasGetMapping}`);
-            console.log(`[GoToEndpoint] Contains @PostMapping: ${hasPostMapping}`);
+            // 记录每个注解的检查结果
+            const annotationResults = annotationsToCheck.map(annotation => {
+                const result = annotation.check();
+                console.log(`[GoToEndpoint] Contains ${annotation.name}: ${result}`);
+                return result;
+            });
             
-            if (hasController || hasRequestMapping || hasGetMapping || hasPostMapping) {
+            // 如果任何一个注解存在，显示警告
+            if (annotationResults.some(result => result)) {
                 vscode.window.showWarningMessage('File appears to contain endpoint annotations, but no endpoints were found. See logs for details.');
             } else {
                 vscode.window.showInformationMessage('No endpoints found in current file.');

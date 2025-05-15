@@ -5,7 +5,7 @@ console.log('[GoToEndpoint] MODULE LOADING...');
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { IndexManager } from './indexer/indexManager';
-// import { FileWatcher } from './indexer/fileWatcher'; // FileWatcher currently commented out
+import { FileWatcher } from './indexer/fileWatcher'; // 启用文件监听
 import { SearchProvider } from './features/searchProvider'; // Only import SearchProvider
 import { EndpointCodeLensProvider, registerCodeLensCommand } from './features/codeLensProvider';
 // Remove old/incorrect imports
@@ -15,7 +15,7 @@ import { EndpointCodeLensProvider, registerCodeLensCommand } from './features/co
 // import { scanAndNavigateToFile } from './features/scanCurrentFile';
 import { EndpointTreeProvider, registerEndpointTreeCommands } from './features/endpointTreeProvider';
 
-// let fileWatcher: FileWatcher | null = null; // FileWatcher currently commented out
+let fileWatcher: FileWatcher | null = null; // 启用文件监听变量
 let statusBarItem: vscode.StatusBarItem;
 
 // This method is called when your extension is activated
@@ -59,16 +59,41 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(codeLensDisposable);
 	console.log('[GoToEndpoint] CodeLens provider registered.');
 
-	// 5. 注释掉自动启动FileWatcher，不再监听文件变化
-	// fileWatcher = new FileWatcher(indexManager);
-	// fileWatcher.startWatching();
-	// context.subscriptions.push({ dispose: () => fileWatcher?.dispose() });
-
-	// 6. 注册扫描当前文件的命令
-	// registerScanCurrentFileCommand(context, indexManager);
+	// 5. 启用文件监听，自动更新索引
+	fileWatcher = new FileWatcher(indexManager);
+	fileWatcher.startWatching();
+	context.subscriptions.push({ dispose: () => fileWatcher?.dispose() });
+	console.log('[GoToEndpoint] File watcher started for Java files.');
 	
-	// 7. 注册扫描整个工作区的命令
-	// registerScanWorkspaceCommand(context, indexManager);
+	// 6. 监听当前文件变更，自动扫描当前Java文件
+	const fileChangeListener = vscode.workspace.onDidSaveTextDocument((document) => {
+		if (document.languageId === 'java') {
+			console.log(`[GoToEndpoint] Java file saved: ${document.uri.fsPath}`);
+			indexManager.updateFile(document.uri.fsPath).then(() => {
+				const endpoints = indexManager.getEndpointsForFile(document.uri.fsPath) || [];
+				console.log(`[GoToEndpoint] Auto-updated index for ${document.uri.fsPath}, found ${endpoints.length} endpoints`);
+			});
+		}
+	});
+	context.subscriptions.push(fileChangeListener);
+	
+	// 7. 监听编辑器变更，确保当前Java文件被扫描
+	const editorChangeListener = vscode.window.onDidChangeActiveTextEditor((editor) => {
+		if (editor && editor.document.languageId === 'java') {
+			const filePath = editor.document.uri.fsPath;
+			console.log(`[GoToEndpoint] Active editor changed to Java file: ${filePath}`);
+			
+			// 检查当前文件是否已索引
+			if (!indexManager.getEndpointsForFile(filePath)) {
+				console.log(`[GoToEndpoint] Auto-scanning newly opened Java file: ${filePath}`);
+				indexManager.updateFile(filePath).then(() => {
+					const endpoints = indexManager.getEndpointsForFile(filePath) || [];
+					console.log(`[GoToEndpoint] Auto-scanned Java file, found ${endpoints.length} endpoints`);
+				});
+			}
+		}
+	});
+	context.subscriptions.push(editorChangeListener);
 
 	// Register the command for copying path (used by CodeLens)
 	registerCodeLensCommand(context);
@@ -111,6 +136,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}, async (progress, token) => {
 			progress.report({ message: '开始扫描Java文件' });
 			try {
+				// 恢复原本的扫描逻辑，使用缓存进行增量更新
 				await indexManager.buildIndex(token);
 				vscode.window.showInformationMessage(`扫描完成，找到 ${indexManager.getEndpointCount()} 个端点`);
 			} catch (error: any) {  // 显式类型标注
@@ -123,6 +149,55 @@ export async function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(scanWorkspaceDisposable);
 	console.log('[GoToEndpoint] Scan workspace command registered.');
+
+	// 重新添加清除缓存的命令，但作为单独功能
+	const clearCacheDisposable = vscode.commands.registerCommand('gotoEndpoints.clearCacheAndRebuild', () => {
+		// 首先询问用户是否确定要清除缓存
+		vscode.window.showWarningMessage(
+			'确定要清除缓存并重新扫描吗？这将删除所有缓存并重新解析所有文件，可能需要较长时间。', 
+			'确定', '取消'
+		).then(selection => {
+			if (selection === '确定') {
+				vscode.window.withProgress({
+					location: vscode.ProgressLocation.Notification,
+					title: '清除缓存并重建索引...',
+					cancellable: true
+				}, async (progress, token) => {
+					progress.report({ message: '正在清除缓存' });
+					try {
+						// 清空缓存
+						console.log('[GoToEndpoint] 清除缓存并重建索引...');
+						indexManager.index.clear();
+						indexManager.initializeEmptyCache();
+						
+						// 删除缓存文件
+						try {
+							const fs = require('fs');
+							const cachePath = indexManager.getCachePath();
+							if (fs.existsSync(cachePath)) {
+								fs.unlinkSync(cachePath);
+								console.log('[GoToEndpoint] 缓存文件已删除');
+							}
+						} catch (error) {
+							console.error('[GoToEndpoint] 删除缓存文件时出错:', error);
+						}
+						
+						// 然后重建索引
+						progress.report({ message: '重新扫描所有Java文件' });
+						await indexManager.buildIndex(token);
+						vscode.window.showInformationMessage(`缓存已清除，重新扫描完成，找到 ${indexManager.getEndpointCount()} 个端点`);
+					} catch (error: any) {
+						if (!token.isCancellationRequested) {
+							const errorMessage = error?.message || '未知错误';
+							vscode.window.showErrorMessage(`清除缓存失败: ${errorMessage}`);
+						}
+					}
+				});
+			}
+		});
+	});
+	context.subscriptions.push(clearCacheDisposable);
+	console.log('[GoToEndpoint] Clear cache command registered.');
 
 	// 初始化端点树视图
 	const endpointTreeProvider = new EndpointTreeProvider(indexManager);
@@ -152,9 +227,9 @@ function updateStatusBar(count: number): void {
 
 // This method is called when your extension is deactivated
 export function deactivate() {
-	// if (fileWatcher) { // FileWatcher currently commented out
-	// 	fileWatcher.dispose();
-	// 	fileWatcher = null;
-	// }
+	if (fileWatcher) {
+		fileWatcher.dispose();
+		fileWatcher = null;
+	}
 	console.log('[GoToEndpoint] Extension deactivated.');
 }

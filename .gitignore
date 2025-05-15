@@ -28,3 +28,6 @@ bin/
 classes/
 META-INF/
 !**/resources/META-INF/
+
+/.vscode/*
+/.specstory/*
