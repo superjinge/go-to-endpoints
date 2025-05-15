@@ -210,6 +210,10 @@ export class EndpointCodeLensProvider implements vscode.CodeLensProvider {
         
         const lenses: vscode.CodeLens[] = [];
         
+        // 用于追踪是否存在不匹配的注解，需要重新扫描
+        let needsRescan = false;
+        const annotationMismatches: number[] = [];
+        
         // 循环创建CodeLens
         for (const endpoint of endpoints) {
             try {
@@ -223,6 +227,16 @@ export class EndpointCodeLensProvider implements vscode.CodeLensProvider {
                 
                 // 获取行对象
                 const line = document.lineAt(lineNumber);
+                const lineText = line.text.trim();
+                
+                // 验证该行是否确实包含注解
+                const containsAnnotation = this.lineContainsAnnotation(lineText);
+                if (!containsAnnotation) {
+                    // 如果行上没有注解，记录不匹配
+                    needsRescan = true;
+                    annotationMismatches.push(lineNumber);
+                    continue; // 跳过此端点，不添加CodeLens
+                }
                 
                 // 只保留代码前的复制按钮
                 const indent = line.firstNonWhitespaceCharacterIndex;
@@ -248,11 +262,75 @@ export class EndpointCodeLensProvider implements vscode.CodeLensProvider {
                 // 只添加代码前的CodeLens
                 lenses.push(new vscode.CodeLens(indentRange, indentCommand));
             } catch (error) {
-                console.error(`[GoToEndpoint] 处理端点时出错 (行 ${endpoint.startLine}):`, error);
+                console.error(`[GoToEndpoint] 创建CodeLens时出错 (行 ${endpoint?.startLine}):`, error);
             }
+        }
+
+        // 如果发现不匹配，触发重新扫描文件
+        if (needsRescan) {
+            // 使用防抖处理，避免频繁触发
+            this.triggerRescan(document.uri.fsPath, annotationMismatches);
         }
         
         return lenses;
+    }
+    
+    // 检查行文本是否包含端点注解
+    private lineContainsAnnotation(lineText: string): boolean {
+        const annotationPatterns = [
+            /@RequestMapping/i,
+            /@GetMapping/i,
+            /@PostMapping/i, 
+            /@PutMapping/i,
+            /@DeleteMapping/i,
+            /@PatchMapping/i,
+            /@Controller/i,
+            /@RestController/i,
+            /@FeignClient/i
+        ];
+        
+        return annotationPatterns.some(pattern => pattern.test(lineText));
+    }
+    
+    // 上次扫描时间记录，用于防抖
+    private lastRescanMap = new Map<string, number>();
+    // 防抖时间（毫秒）
+    private readonly RESCAN_DEBOUNCE = 5000; // 5秒内不重复扫描同一文件
+    
+    /**
+     * 触发重新扫描文件，带防抖处理
+     * @param filePath 文件路径
+     * @param mismatches 不匹配的行号
+     */
+    private triggerRescan(filePath: string, mismatches: number[]): void {
+        const now = Date.now();
+        const lastRescan = this.lastRescanMap.get(filePath) || 0;
+        
+        // 如果距离上次扫描时间小于防抖时间，则不触发
+        if (now - lastRescan < this.RESCAN_DEBOUNCE) {
+            return;
+        }
+        
+        console.log(`[GoToEndpoint] 检测到端点按钮位置与注解不匹配，触发重新扫描: ${filePath}`);
+        console.log(`[GoToEndpoint] 不匹配的行号: ${mismatches.join(', ')}`);
+        
+        // 记录本次扫描时间
+        this.lastRescanMap.set(filePath, now);
+        
+        // 清除缓存
+        this._fileEndpointCache.delete(filePath);
+        
+        // 触发重新扫描
+        this.indexManager.updateFile(filePath).then(() => {
+            console.log(`[GoToEndpoint] 自动重新扫描完成: ${filePath}`);
+            
+            // 刷新CodeLens
+            this._onDidChangeCodeLenses.fire();
+            // 刷新装饰器
+            this.updateDecorations();
+        }).catch(error => {
+            console.error(`[GoToEndpoint] 自动重新扫描失败: ${filePath}`, error);
+        });
     }
 }
 
