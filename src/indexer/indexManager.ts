@@ -760,7 +760,13 @@ export class IndexManager {
    * 重建索引
    */
   private rebuildIndex() {
-    // Implementation of rebuildIndex method
+    console.log('[GoToEndpoint] 在初始化阶段调用rebuildIndex...');
+    // 调用完整的buildIndex方法，确保初始化和重新扫描行为一致
+    this.buildIndex().then(() => {
+      console.log('[GoToEndpoint] 初始化阶段索引构建完成');
+    }).catch(error => {
+      console.error('[GoToEndpoint] 初始化阶段索引构建失败:', error);
+    });
   }
 
   /**

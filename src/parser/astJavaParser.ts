@@ -610,13 +610,24 @@ function parseJavaFileWithRegex(filePath: string, fileContent: string): Endpoint
         if (isControllerClass) {
             console.log(`[Regex Parser] Found Controller class: ${className}`);
             
+            // 1. 先获取类声明的位置
+            const classDeclarationRegex = /\bclass\s+(\w+)(?:\s+extends\s+\w+)?(?:\s+implements\s+(?:\w+(?:,\s*\w+)*))?/;
+            const classMatch = classDeclarationRegex.exec(fileContent);
+            const classPosition = classMatch ? classMatch.index : 0;
+            
+            // 2. 识别类级别的RequestMapping注解位置，避免后续重复处理
+            let classRequestMappingPosition = -1;
             // Extract class level path
             let match;
             while ((match = classRequestMappingRegex.exec(fileContent)) !== null) {
-                // Get the first non-undefined group
-                classPath = match[1] || match[2] || match[3] || match[4] || '';
-                console.log(`[Regex Parser] Found class level path: ${classPath}`);
-                break;
+                // 确保这个注解在类声明之前 - 即它是类级别的注解
+                if (match.index < classPosition) {
+                    classRequestMappingPosition = match.index;
+                    // Get the first non-undefined group
+                    classPath = match[1] || match[2] || match[3] || match[4] || '';
+                    console.log(`[Regex Parser] Found class level path: ${classPath} at position ${classRequestMappingPosition}`);
+                    break;
+                }
             }
             
             // Find method level request mappings
@@ -629,6 +640,13 @@ function parseJavaFileWithRegex(filePath: string, fileContent: string): Endpoint
             
             while ((methodMatch = methodRegex.exec(fileContent)) !== null) {
                 const annotationPosition = methodMatch.index;
+                
+                // 3. 跳过类级别的RequestMapping注解 - 关键修复
+                if (annotationPosition === classRequestMappingPosition) {
+                    console.log(`[Regex Parser] Skipping class level RequestMapping annotation at position ${annotationPosition}`);
+                    continue;
+                }
+                
                 const annotationType = methodMatch[1] || '';  // Get, Post, RequestMapping等
                 const annotationParams = methodMatch[2] || ''; // 参数部分，包括括号
                 

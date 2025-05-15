@@ -7,6 +7,12 @@
     "type": "git",
     "url": "https://github.com/yourusername/go-to-endpoints"
   },
+  "icon": "resources/icons/icon.png",
+  "publisher": "superjinge",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.96.0"
   },

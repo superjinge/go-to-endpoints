@@ -215,20 +215,43 @@ export class EndpointCodeLensProvider implements vscode.CodeLensProvider {
         let needsRescan = false;
         const annotationMismatches: number[] = [];
         
-        // 循环创建CodeLens
+        // 循环创建CodeLens - 过滤掉类级别的端点
         for (const endpoint of endpoints) {
             try {
-                // 使用端点的起始行 (1-based 转为 0-based)
+                // 跳过类级别的注解 - 类级别注解的methodName通常为空或特殊标记
+                // 即：只有确实有方法名的端点才显示复制按钮
+                if (!endpoint.methodName || endpoint.methodName === '<class>' || endpoint.methodName === 'unknownMethod') {
+                    console.log(`[GoToEndpoint] 跳过类级别注解: ${endpoint.fullPath}`);
+                    continue;
+                }
+                
+                // 强化类级别注解检测 - 使用正则表达式检查当前行是否包含类级别注解
                 const lineNumber = endpoint.startLine - 1;
-        
-                // 确保行号在文档范围内
                 if (lineNumber < 0 || lineNumber >= document.lineCount) {
                     continue;
                 }
                 
-                // 获取行对象
-                const line = document.lineAt(lineNumber);
-                const lineText = line.text.trim();
+                const lineText = document.lineAt(lineNumber).text.trim();
+                
+                // 更严格检查是否包含类级别注解标记
+                if (/^@(?:RestController|Controller|RequestMapping)/.test(lineText)) {
+                    // 获取后面几行的内容，查找是否包含类声明
+                    let isClassLevelAnnotation = false;
+                    
+                    // 检查接下来的几行是否包含"class"关键字和控制器命名模式
+                    for (let i = 1; i <= 3 && lineNumber + i < document.lineCount; i++) {
+                        const nextLineText = document.lineAt(lineNumber + i).text.trim();
+                        if (/\bclass\b.*Controller/.test(nextLineText)) {
+                            isClassLevelAnnotation = true;
+                            break;
+                        }
+                    }
+                    
+                    if (isClassLevelAnnotation) {
+                        console.log(`[GoToEndpoint] 检测到类级别的注解模式，跳过: ${endpoint.fullPath} at line ${endpoint.startLine}`);
+                        continue;
+                    }
+                }
                 
                 // 验证该行是否确实包含注解
                 const containsAnnotation = this.lineContainsAnnotation(lineText);
@@ -240,7 +263,7 @@ export class EndpointCodeLensProvider implements vscode.CodeLensProvider {
                 }
                 
                 // 只保留代码前的复制按钮
-                const indent = line.firstNonWhitespaceCharacterIndex;
+                const indent = document.lineAt(lineNumber).firstNonWhitespaceCharacterIndex;
                 const indentPosition = new vscode.Position(lineNumber, indent);
                 const indentRange = new vscode.Range(indentPosition, indentPosition);
                 
@@ -257,7 +280,7 @@ export class EndpointCodeLensProvider implements vscode.CodeLensProvider {
                     title: `$(clippy) 复制 [${displayMethod}]`,
                     tooltip: `复制路径: ${pathToCopy}`,
                     command: COPY_COMMAND_ID,
-                    arguments: [pathToCopy, httpMethod, endpoint.className, endpoint.methodName]
+                    arguments: [pathToCopy, httpMethod, endpoint.className, endpoint.methodName, endpoint.originalClassPath, endpoint.originalMethodPath]
                 };
                 
                 // 只添加代码前的CodeLens
@@ -338,7 +361,7 @@ export class EndpointCodeLensProvider implements vscode.CodeLensProvider {
 // Register the command handler for copying the path
 export function registerCodeLensCommand(context: vscode.ExtensionContext) {
     console.log('[GoToEndpoint] Registering CodeLens command');
-    const disposable = vscode.commands.registerCommand(COPY_COMMAND_ID, (path: string, method?: string, className?: string, methodName?: string) => {
+    const disposable = vscode.commands.registerCommand(COPY_COMMAND_ID, (path: string, method?: string, className?: string, methodName?: string, originalClassPath?: string, originalMethodPath?: string) => {
         if (path) {
             // 打印更多调试信息
             console.log(`[GoToEndpoint] 路径复制调试信息:`);
@@ -347,11 +370,39 @@ export function registerCodeLensCommand(context: vscode.ExtensionContext) {
             console.log(`[GoToEndpoint] - 类名: ${className}`);
             console.log(`[GoToEndpoint] - 方法名: ${methodName}`);
             
-            // 将路径复制到剪贴板
-            vscode.env.clipboard.writeText(path);
+            // 路径验证和修复逻辑
+            // 检查是否是完整路径 - 对于类似 SpringBoot 的格式，完整路径通常应包含方法路径部分
+            // 仅当 path 只包含类路径而没有方法路径时进行修复
+            let finalPath = path;
+            
+            // 获取 endpoint 的 originalClassPath 和 originalMethodPath 属性
+            // 这些是从参数传入的，在 provideCodeLenses 创建 CodeLens 时赋值
+            const classPath = originalClassPath || '';
+            const methodPath = originalMethodPath || '';
+            
+            // 分析当前 path 是否看起来像是完整路径
+            const pathParts = path.split('/').filter(p => p.length > 0);
+            const isLikelyJustClassPath = pathParts.length <= 1 && methodPath && methodPath.length > 0;
+            
+            if (isLikelyJustClassPath && classPath && methodPath) {
+                // 可能只有类路径，尝试使用 utils/pathUtils.ts 中的 joinPaths 函数手动拼接
+                try {
+                    const { joinPaths } = require('../utils/pathUtils');
+                    finalPath = joinPaths(classPath, methodPath);
+                    console.log(`[GoToEndpoint] - 检测到路径不完整，重新拼接: ${finalPath}`);
+                } catch (error) {
+                    console.error(`[GoToEndpoint] - 路径拼接失败:`, error);
+                    // 兜底方案：简单拼接
+                    finalPath = `${classPath}${methodPath.startsWith('/') ? '' : '/'}${methodPath}`;
+                    console.log(`[GoToEndpoint] - 使用兜底方案拼接: ${finalPath}`);
+                }
+            }
+            
+            // 将修正后的路径复制到剪贴板
+            vscode.env.clipboard.writeText(finalPath);
             
             // 构建更详细的消息
-            let message = `路径已复制到剪贴板: ${path}`;
+            let message = `路径已复制到剪贴板: ${finalPath}`;
             if (method) {
                 message += ` [${method}]`;
             }
@@ -365,7 +416,7 @@ export function registerCodeLensCommand(context: vscode.ExtensionContext) {
             // 使用自动消失的通知
             showInfo(message, detail);
             
-            console.log(`[GoToEndpoint] Copied path to clipboard: ${path}`);
+            console.log(`[GoToEndpoint] Copied path to clipboard: ${finalPath}`);
         } else {
             console.error('[GoToEndpoint] No path provided to copy command');
         }
