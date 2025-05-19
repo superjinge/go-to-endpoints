@@ -1,6 +1,6 @@
 # Go To Endpoints - VS Code 扩展
 
-一个专为 Java 开发者设计的 VS Code 扩展，可以快速搜索和导航到 Spring Controller 和 Feign 客户端的 API 端点。帮助开发者在大型 Java 项目中高效定位和管理 API 端点。
+一个专为 Java 开发者设计的 VS Code 扩展，可以快速搜索和导航到 Spring Controller 的 API 端点。帮助开发者在大型 Java 项目中高效定位和管理 API 端点。
 
 ## 功能特性
 
@@ -14,8 +14,8 @@
 
 ### 支持的框架
 
-- **Spring MVC**：支持 `@RestController`, `@Controller`, `@RequestMapping`, `@GetMapping`, `@PostMapping` 等注解
-- **Feign 客户端**：支持 `@FeignClient` 接口的识别和解析
+- **Spring**：支持 `@RestController`, `@Controller`, `@RequestMapping`, `@GetMapping`, `@PostMapping` 等注解
+
 
 ## 使用方法
 
@@ -99,6 +99,3 @@
 如发现问题或有功能建议，请在 GitHub 仓库提交 Issue。
 欢迎提交 Pull Request 贡献代码。
 
-## 许可证
-
-MIT
