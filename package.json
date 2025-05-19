@@ -1,8 +1,8 @@
 {
   "name": "go-to-endpoints",
   "displayName": "Go To Endpoints",
-  "description": "快速搜索和导航到Java Controller和Feign端点，支持复制API路径。",
-  "version": "0.0.4",
+  "description": "快速搜索和导航到Java Controller端点，支持复制API路径。",
+  "version": "0.0.5",
   "repository": {
     "type": "git",
     "url": "https://github.com/superjinge/go-to-endpoints"
@@ -227,6 +227,7 @@
   },
   "dependencies": {
     "@types/minimatch": "^5.1.2",
+    "go-to-endpoints": "file:",
     "java-parser": "^2.3.3",
     "minimatch": "^10.0.1"
   }
