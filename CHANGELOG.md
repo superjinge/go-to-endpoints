@@ -5,6 +5,11 @@ All notable changes to the "go-to-endpoints" extension will be documented in thi
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
 
+## [0.0.4] - 2025-05-19
+
+### 修复
+- 修复图标大小问题
+
 ## [0.0.3] - 2025-05-19
 
 ### 新增功能

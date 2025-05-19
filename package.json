@@ -2,8 +2,11 @@
   "name": "go-to-endpoints",
   "displayName": "Go To Endpoints",
   "description": "快速搜索和导航到Java Controller和Feign端点，支持复制API路径。",
-  "version": "0.0.3",
-    "repository": {    "type": "git",    "url": "https://github.com/superjinge/go-to-endpoints"  },
+  "version": "0.0.4",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/superjinge/go-to-endpoints"
+  },
   "icon": "resources/icons/icon.png",
   "publisher": "superjinge",
   "galleryBanner": {
@@ -170,7 +173,9 @@
         },
         "gotoEndpoints.fileExtensions": {
           "type": "array",
-          "default": [".java"],
+          "default": [
+            ".java"
+          ],
           "description": "要扫描的文件扩展名（默认为.java）"
         },
         "gotoEndpoints.enableDecorations": {
