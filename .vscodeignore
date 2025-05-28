@@ -12,3 +12,8 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
+.specstory/
+.idea/
+BEFORE_PUBLISH.md
+TaskProgress.md
+.cursorindexingignore

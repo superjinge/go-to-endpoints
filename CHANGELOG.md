@@ -3,19 +3,24 @@
 All notable changes to the "go-to-endpoints" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+MODULE LOADING..
 
+## [0.0.6] - 搜索实时结果展示
 
-## [0.0.5] - 2025-05-19
+### 功能
+- 实现搜索实时结果展示
+
+## [0.0.5] -  
 
 ### 修复
 - 修复插件描述
 
-## [0.0.4] - 2025-05-19
+## [0.0.4] -  
 
 ### 修复
 - 修复图标大小问题
 
-## [0.0.3] - 2025-05-19
+## [0.0.3] -  
 
 ### 新增功能
 - 添加图标
