@@ -1,0 +1,33 @@
+out
+dist
+node_modules
+.vscode-test/
+*.vsix
+# SpecStory explanation file
+.specstory/.what-is-this.md
+
+
+# IntelliJ
+.idea/
+*/.idea/
+*.iws
+*.iml
+*.ipr
+*.ips
+
+
+# Generated
+target/
+/target/
+*/target/*
+*/*/target/*
+javadoc/
+bin/
+.bin
+/*/bin/
+classes/
+META-INF/
+!**/resources/META-INF/
+
+/.vscode/*
+/.specstory/*

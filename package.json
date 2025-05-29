@@ -1,0 +1,233 @@
+{
+  "name": "go-to-endpoints",
+  "displayName": "Go To Endpoints",
+  "description": "Quickly search and navigate to Java Controller endpoints with API path copying support.",
+  "version": "0.0.7",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/superjinge/go-to-endpoints"
+  },
+  "icon": "resources/icons/icon.png",
+  "publisher": "superjinge",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:java",
+    "workspaceContains:**/*.java"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "gotoEndpoints.search",
+        "title": "Go To Endpoint: Search Endpoints"
+      },
+      {
+        "command": "gotoEndpoints.scanCurrentFile",
+        "title": "Go To Endpoint: Scan Current Java File"
+      },
+      {
+        "command": "gotoEndpoints.scanWorkspace",
+        "title": "Go To Endpoint: Clear Cache and Scan Workspace",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "gotoEndpoints.refreshEndpointTree",
+        "title": "Go To Endpoint: Refresh Endpoint Tree",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "gotoEndpoints.openEndpoint",
+        "title": "Go To Endpoint: Open Endpoint Definition"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "endpoint-explorer",
+          "title": "Endpoint Explorer",
+          "icon": "resources/icons/endpoint.svg"
+        }
+      ]
+    },
+    "views": {
+      "endpoint-explorer": [
+        {
+          "id": "gotoEndpointsExplorer",
+          "name": "Endpoint Explorer",
+          "icon": "resources/icons/endpoint.svg",
+          "contextualTitle": "API Endpoints"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "gotoEndpoints.refreshEndpointTree",
+          "when": "view == gotoEndpointsExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "gotoEndpoints.scanWorkspace",
+          "when": "view == gotoEndpointsExplorer",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "gotoEndpoints.scanCurrentFile",
+          "when": "resourceLangId == java",
+          "group": "1_gotoEndpoints"
+        },
+        {
+          "command": "gotoEndpoints.scanWorkspace",
+          "group": "1_gotoEndpoints"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "gotoEndpoints.scanCurrentFile",
+          "when": "resourceLangId == java",
+          "group": "1_gotoEndpoints"
+        },
+        {
+          "command": "gotoEndpoints.scanWorkspace",
+          "group": "1_gotoEndpoints"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "gotoEndpoints.search",
+        "key": "ctrl+shift+\\",
+        "mac": "cmd+shift+\\"
+      },
+      {
+        "command": "gotoEndpoints.scanCurrentFile",
+        "key": "ctrl+shift+j",
+        "mac": "cmd+shift+j"
+      },
+      {
+        "command": "gotoEndpoints.scanWorkspace",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k"
+      }
+    ],
+    "configuration": {
+      "title": "Go To Endpoints",
+      "properties": {
+        "gotoEndpoints.includeGlobs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/*.java"
+          ],
+          "description": "Glob patterns for files to include in the endpoint index."
+        },
+        "gotoEndpoints.excludeGlobs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/node_modules/**",
+            "**/target/**",
+            "**/build/**",
+            "**/.*/**",
+            "**/*Test.java"
+          ],
+          "description": "Glob patterns for files or folders to exclude from the endpoint index."
+        },
+        "gotoEndpoints.enableCache": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable caching to speed up indexing (no need to rescan unchanged files after restart)."
+        },
+        "gotoEndpoints.concurrencyLimit": {
+          "type": "number",
+          "default": 50,
+          "minimum": 1,
+          "maximum": 200,
+          "description": "Limit the number of concurrent file parsing operations (higher values speed up indexing but increase memory usage)."
+        },
+        "gotoEndpoints.autoIndex": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to automatically index all files when the extension starts."
+        },
+        "gotoEndpoints.usePrefilter": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to pre-filter files that don't contain controller annotations before parsing (improves speed)."
+        },
+        "gotoEndpoints.fileExtensions": {
+          "type": "array",
+          "default": [
+            ".java"
+          ],
+          "description": "File extensions to scan (default is .java)."
+        },
+        "gotoEndpoints.enableDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to enable line decorations for API endpoints (highlighting and hover hints)."
+        },
+        "gotoEndpoints.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to enable copy buttons (CodeLens) for API endpoints."
+        },
+        "gotoEndpoints.notificationTimeout": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 1000,
+          "maximum": 10000,
+          "description": "Auto-close timeout for notification messages in milliseconds (default 3000ms/3 seconds)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.96.0",
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "esbuild": "^0.25.1",
+    "eslint": "^9.23.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@types/minimatch": "^5.1.2",
+    "java-parser": "^2.3.3",
+    "minimatch": "^10.0.1"
+  }
+}
