@@ -3,45 +3,74 @@
 All notable changes to the "go-to-endpoints" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
-MODULE LOADING..
 
-## [0.0.6] - 搜索实时结果展示
+## [0.0.7] - Latest Release
 
-### 功能
-- 实现搜索实时结果展示
+### Added
+- Enhanced endpoint search with real-time results display
+- Improved search algorithm with intelligent ranking
+- Better performance optimization for large projects
 
-## [0.0.5] -  
+### Fixed
+- Resolved plugin activation issues
+- Improved CodeLens positioning and functionality
+- Enhanced Java file parsing reliability
 
-### 修复
-- 修复插件描述
+## [0.0.6] - Real-time Search Results
 
-## [0.0.4] -  
+### Added
+- Real-time search results display as you type
+- Live filtering of endpoint matches
+- Improved search responsiveness
 
-### 修复
-- 修复图标大小问题
+## [0.0.5] - Description Fix
 
-## [0.0.3] -  
+### Fixed
+- Updated plugin description for better clarity
+- Improved marketplace presentation
 
-### 新增功能
-- 添加图标
+## [0.0.4] - Icon Size Fix
 
-## [0.0.2] - 未发布
+### Fixed
+- Resolved icon sizing issues in VS Code interface
+- Optimized icon display across different themes
 
-### 新增功能
-- 添加端点树视图，在侧边栏中按路径层次展示所有端点
-- 优化搜索结果展示格式为 "路径 ((类名)[接口请求方式])"
-- 增强搜索算法，提高搜索结果相关性和排序
-- 改进注解上侧的复制按钮，更直观易用
-- 添加中文本地化支持
+## [0.0.3] - Icon Addition
 
-### 修复
-- 修复插件激活问题，确保功能正常启用
+### Added
+- Added extension icon for better visual identification
+- Improved branding and marketplace presence
 
-## [0.0.1] - 未发布
+## [0.0.2] - Major Feature Update (Unreleased)
 
-### 初始版本
-- 基本的Java端点索引和搜索功能
-- 支持Spring MVC控制器
-- 通过快捷键和命令面板搜索端点
-- 支持对 `/url` 进行搜索，避免与VSCode原生搜索冲突
-- 为端点注解提供复制路径的CodeLens功能
+### Added
+- **Endpoint Tree View**: Added sidebar panel displaying all endpoints in hierarchical structure
+- **Enhanced Search Format**: Updated search results to show "Path ((ClassName)[HTTPMethod])" format
+- **Improved Search Algorithm**: Implemented score-based ranking for better search relevance
+- **Better CodeLens Integration**: Optimized copy buttons positioning above annotations
+- **Chinese Localization**: Added comprehensive Chinese language support
+
+### Enhanced
+- **Feign Client Support**: Enhanced parsing for FeignClient annotations with url, name, value, and path attributes
+- **Path Resolution**: Improved intelligent path parsing logic with service name inference
+- **Annotation Extraction**: More robust annotation value extraction methods
+
+### Fixed
+- Plugin activation issues ensuring proper functionality
+- Search result relevance and sorting accuracy
+- CodeLens button positioning and display
+
+## [0.0.1] - Initial Release (Unreleased)
+
+### Added
+- **Basic Endpoint Indexing**: Core Java endpoint indexing and search functionality
+- **Spring MVC Support**: Full support for Spring MVC controllers
+- **Keyboard Shortcuts**: Search endpoints via shortcuts and command palette
+- **URL Search**: Support for `/url` pattern searches to avoid conflicts with VS Code native search
+- **CodeLens Integration**: Copy path functionality for endpoint annotations
+
+### Features
+- Fast endpoint discovery in Java Spring projects
+- Intelligent search with path and method name matching
+- One-click navigation to endpoint definitions
+- Copy endpoint paths for API testing and documentation

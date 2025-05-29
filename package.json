@@ -1,7 +1,7 @@
 {
   "name": "go-to-endpoints",
   "displayName": "Go To Endpoints",
-  "description": "快速搜索和导航到Java Controller端点，支持复制API路径。",
+  "description": "Quickly search and navigate to Java Controller endpoints with API path copying support.",
   "version": "0.0.7",
   "repository": {
     "type": "git",
@@ -33,28 +33,28 @@
       },
       {
         "command": "gotoEndpoints.scanCurrentFile",
-        "title": "Go To Endpoint: 扫描当前Java文件"
+        "title": "Go To Endpoint: Scan Current Java File"
       },
       {
         "command": "gotoEndpoints.scanWorkspace",
-        "title": "Go To Endpoint: 清除缓存并扫描整个工作区",
+        "title": "Go To Endpoint: Clear Cache and Scan Workspace",
         "icon": "$(refresh)"
       },
       {
         "command": "gotoEndpoints.refreshEndpointTree",
-        "title": "Go To Endpoint: 刷新端点树视图",
+        "title": "Go To Endpoint: Refresh Endpoint Tree",
         "icon": "$(refresh)"
       },
       {
         "command": "gotoEndpoints.openEndpoint",
-        "title": "Go To Endpoint: 打开端点定义"
+        "title": "Go To Endpoint: Open Endpoint Definition"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
           "id": "endpoint-explorer",
-          "title": "端点浏览器",
+          "title": "Endpoint Explorer",
           "icon": "resources/icons/endpoint.svg"
         }
       ]
@@ -63,9 +63,9 @@
       "endpoint-explorer": [
         {
           "id": "gotoEndpointsExplorer",
-          "name": "端点浏览器",
+          "name": "Endpoint Explorer",
           "icon": "resources/icons/endpoint.svg",
-          "contextualTitle": "API端点"
+          "contextualTitle": "API Endpoints"
         }
       ]
     },
@@ -152,48 +152,48 @@
         "gotoEndpoints.enableCache": {
           "type": "boolean",
           "default": true,
-          "description": "启用缓存以加速索引（重新启动后无需再次扫描未更改的文件）"
+          "description": "Enable caching to speed up indexing (no need to rescan unchanged files after restart)."
         },
         "gotoEndpoints.concurrencyLimit": {
           "type": "number",
           "default": 50,
           "minimum": 1,
           "maximum": 200,
-          "description": "并发解析文件的数量限制（提高可以加速索引，但会增加内存使用）"
+          "description": "Limit the number of concurrent file parsing operations (higher values speed up indexing but increase memory usage)."
         },
         "gotoEndpoints.autoIndex": {
           "type": "boolean",
           "default": true,
-          "description": "是否在扩展启动时自动索引全部文件"
+          "description": "Whether to automatically index all files when the extension starts."
         },
         "gotoEndpoints.usePrefilter": {
           "type": "boolean",
           "default": true,
-          "description": "是否在解析前预先过滤不包含控制器注解的文件（提高速度）"
+          "description": "Whether to pre-filter files that don't contain controller annotations before parsing (improves speed)."
         },
         "gotoEndpoints.fileExtensions": {
           "type": "array",
           "default": [
             ".java"
           ],
-          "description": "要扫描的文件扩展名（默认为.java）"
+          "description": "File extensions to scan (default is .java)."
         },
         "gotoEndpoints.enableDecorations": {
           "type": "boolean",
           "default": true,
-          "description": "是否启用API端点的行装饰器（高亮和悬停提示）"
+          "description": "Whether to enable line decorations for API endpoints (highlighting and hover hints)."
         },
         "gotoEndpoints.enableCodeLens": {
           "type": "boolean",
           "default": true,
-          "description": "是否启用API端点的复制按钮（CodeLens）"
+          "description": "Whether to enable copy buttons (CodeLens) for API endpoints."
         },
         "gotoEndpoints.notificationTimeout": {
           "type": "number",
           "default": 3000,
           "minimum": 1000,
           "maximum": 10000,
-          "description": "通知消息自动关闭的时间（毫秒），默认3000毫秒（3秒）"
+          "description": "Auto-close timeout for notification messages in milliseconds (default 3000ms/3 seconds)."
         }
       }
     }

@@ -1,101 +1,216 @@
-# Go To Endpoints - VS Code 扩展
+# Go To Endpoints
 
-一个专为 Java 开发者设计的 VS Code 扩展，可以快速搜索和导航到 Spring Controller 的 API 端点。帮助开发者在大型 Java 项目中高效定位和管理 API 端点。
+[![Version](https://img.shields.io/visual-studio-marketplace/v/superjinge.go-to-endpoints)](https://marketplace.visualstudio.com/items?itemName=superjinge.go-to-endpoints)
+[![Downloads](https://img.shields.io/visual-studio-marketplace/d/superjinge.go-to-endpoints)](https://marketplace.visualstudio.com/items?itemName=superjinge.go-to-endpoints)
+[![Rating](https://img.shields.io/visual-studio-marketplace/r/superjinge.go-to-endpoints)](https://marketplace.visualstudio.com/items?itemName=superjinge.go-to-endpoints)
+[![License](https://img.shields.io/github/license/superjinge/go-to-endpoints)](LICENSE)
 
-## 功能特性
+> **Language**: English | [中文](README_CN.md)
 
-- **快速搜索端点**：通过路径或方法名快速查找端点
-- **端点树视图**：在侧边栏按层次结构显示所有端点
-- **智能搜索排序**：根据匹配度智能排序搜索结果
-- **一键导航**：直接跳转到端点定义位置
-- **复制端点路径**：在端点方法处显示复制按钮，一键复制完整路径
-- **实时索引更新**：文件保存时自动更新索引
-- **高效缓存机制**：支持索引缓存，提高重启后加载速度
+**A powerful VS Code extension for Java developers to quickly search and navigate to Spring Controller API endpoints.**
 
-### 支持的框架
+Streamline your Java development workflow by instantly locating and managing API endpoints in large Spring projects. No more manual searching through countless controller files!
 
-- **Spring**：支持 `@RestController`, `@Controller`, `@RequestMapping`, `@GetMapping`, `@PostMapping` 等注解
+![Preview](https://raw.githubusercontent.com/superjinge/go-to-endpoints/main/resources/preview.png)
 
+## ✨ Features
 
-## 使用方法
+### 🔍 **Smart Endpoint Search**
+- **Lightning-fast search**: Find endpoints by path or method name with intelligent ranking
+- **Fuzzy matching**: Type `/users` or `getUserById` to instantly locate relevant endpoints
+- **Real-time results**: See search results as you type with live filtering
 
-### 搜索端点
+### 🌳 **Endpoint Tree View**
+- **Hierarchical display**: Browse all endpoints organized by path structure in the sidebar
+- **One-click navigation**: Jump directly to endpoint definitions with a single click
+- **Visual organization**: Clear categorization of endpoints by controller and HTTP method
 
-1. 使用快捷键 `Ctrl+Shift+\`（macOS: `Cmd+Shift+\`）
-2. 或从命令面板运行 `Go To Endpoint: Search Endpoints`
-3. 在搜索框中输入查询：
-   - `/users` - 搜索包含此路径的端点
-   - `getUserById` - 搜索包含此方法名的端点
+### 📋 **Copy Endpoint Paths**
+- **CodeLens integration**: Copy buttons appear above endpoint annotations
+- **Full path copying**: Get complete API paths including base mappings
+- **Developer-friendly**: Perfect for API documentation and testing
 
-### 端点树视图
+### ⚡ **Performance Optimized**
+- **Intelligent caching**: Index caching for faster startup after VS Code restarts
+- **Concurrent processing**: Multi-threaded file parsing for large projects
+- **Smart filtering**: Pre-filter files to avoid unnecessary processing
+- **Real-time updates**: Automatic index updates when files are saved
 
-1. 点击 VS Code 侧边栏中的端点浏览器图标
-2. 或从命令面板运行 `Go To Endpoint: 刷新端点树视图`
-3. 浏览按路径层次组织的所有端点
-4. 点击端点直接跳转到源代码定义位置
+### 🎯 **Framework Support**
+- **Spring Framework**: Full support for `@RestController`, `@Controller`, `@RequestMapping`
+- **HTTP Methods**: `@GetMapping`, `@PostMapping`, `@PutMapping`, `@DeleteMapping`, `@PatchMapping`
+- **Path Variables**: Intelligent parsing of path parameters and request mappings
 
-### 复制端点路径
+## 🚀 Quick Start
 
-1. 打开包含 Spring Controller 或 Feign 客户端的 Java 文件
-2. 找到带有 `@RequestMapping`, `@GetMapping`, `@PostMapping` 等注解的方法
-3. 在注解上方会显示一个复制按钮的 CodeLens，点击即可复制完整路径
+### Installation
 
-### 扫描工作区
+**From VS Code Marketplace:**
+1. Open VS Code
+2. Go to Extensions (`Ctrl+Shift+X`)
+3. Search for "Go To Endpoints"
+4. Click Install
 
-1. 侧边栏端点浏览器中点击刷新按钮
-2. 或从命令面板运行 `Go To Endpoint: 清除缓存并扫描整个工作区`
-3. 扫描完成后，所有端点将被更新并显示在端点树视图中
+**From Command Line:**
+```bash
+code --install-extension superjinge.go-to-endpoints
+```
 
-## 安装
+### Basic Usage
 
-1. 从 VS Code 扩展市场安装
-2. 或使用 Quick Open（`Ctrl+P`），运行命令：
+#### 1. Search Endpoints
+- Press `Ctrl+Shift+\` (macOS: `Cmd+Shift+\`)
+- Type your search query:
+  - `/api/users` - Find endpoints with this path
+  - `getUserById` - Find methods with this name
+  - `POST /users` - Find POST endpoints
+
+#### 2. Browse Endpoint Tree
+- Click the endpoint explorer icon in the sidebar
+- Navigate through the hierarchical endpoint structure
+- Click any endpoint to jump to its definition
+
+#### 3. Copy Endpoint Paths
+- Open a Java file with Spring Controller annotations
+- Look for copy buttons (CodeLens) above `@RequestMapping`, `@GetMapping`, etc.
+- Click to copy the complete endpoint path
+
+#### 4. Scan Workspace
+- Use `Ctrl+Shift+K` (macOS: `Cmd+Shift+K`) to scan the entire workspace
+- Or click the refresh button in the endpoint tree view
+
+## ⚙️ Configuration
+
+Customize the extension behavior in VS Code settings:
+
+```json
+{
+  "gotoEndpoints.includeGlobs": ["**/*.java"],
+  "gotoEndpoints.excludeGlobs": [
+    "**/node_modules/**",
+    "**/target/**", 
+    "**/build/**",
+    "**/.*/**",
+    "**/*Test.java"
+  ],
+  "gotoEndpoints.enableCache": true,
+  "gotoEndpoints.concurrencyLimit": 50,
+  "gotoEndpoints.autoIndex": true,
+  "gotoEndpoints.usePrefilter": true,
+  "gotoEndpoints.enableDecorations": true,
+  "gotoEndpoints.enableCodeLens": true,
+  "gotoEndpoints.notificationTimeout": 3000
+}
+```
+
+### Configuration Options
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `includeGlobs` | array | `["**/*.java"]` | File patterns to include in endpoint indexing |
+| `excludeGlobs` | array | `["**/node_modules/**", ...]` | File patterns to exclude from indexing |
+| `enableCache` | boolean | `true` | Enable caching for faster indexing |
+| `concurrencyLimit` | number | `50` | Maximum concurrent file parsing operations |
+| `autoIndex` | boolean | `true` | Automatically index files on extension startup |
+| `usePrefilter` | boolean | `true` | Pre-filter files without controller annotations |
+| `enableDecorations` | boolean | `true` | Enable line decorations for API endpoints |
+| `enableCodeLens` | boolean | `true` | Enable copy buttons above endpoint annotations |
+| `notificationTimeout` | number | `3000` | Auto-close timeout for notifications (ms) |
+
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Ctrl+Shift+\` | Search Endpoints | Open endpoint search dialog |
+| `Ctrl+Shift+J` | Scan Current File | Index endpoints in current Java file |
+| `Ctrl+Shift+K` | Scan Workspace | Clear cache and scan entire workspace |
+
+*Note: On macOS, use `Cmd` instead of `Ctrl`*
+
+## 🔧 Technical Requirements
+
+- **VS Code Version**: 1.96.0 or higher
+- **Language Support**: Java
+- **Framework Support**: Spring Framework (Spring Boot, Spring MVC)
+- **File Types**: `.java` files
+- **Operating Systems**: Windows, macOS, Linux
+
+## 📊 Performance
+
+- **Activation**: Only activates when Java files are opened
+- **Memory Efficient**: Optimized parsing with configurable concurrency limits
+- **Cache System**: Persistent caching reduces re-indexing time
+- **Large Projects**: Tested with projects containing 1000+ endpoint definitions
+- **Background Processing**: Non-blocking indexing won't interrupt your workflow
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how to get started:
+
+### Development Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/superjinge/go-to-endpoints.git
+   cd go-to-endpoints
    ```
-   ext install go-to-endpoints
+
+2. **Install dependencies**
+   ```bash
+   npm install
    ```
 
-## 配置选项
+3. **Open in VS Code**
+   ```bash
+   code .
+   ```
 
-在 VS Code 设置中可以自定义以下选项：
+4. **Run the extension**
+   - Press `F5` to open a new Extension Development Host window
+   - Test your changes in the new window
 
-- `gotoEndpoints.includeGlobs`：设置要包含在端点索引中的文件的 Glob 模式（默认：`["**/*.java"]`）
-- `gotoEndpoints.excludeGlobs`：设置要排除在端点索引外的文件的 Glob 模式（默认：`["**/node_modules/**", "**/target/**", "**/build/**", "**/.*/**", "**/*Test.java"]`）
-- `gotoEndpoints.enableCache`：启用缓存以加速索引（默认：`true`）
-- `gotoEndpoints.concurrencyLimit`：并发解析文件的数量限制（默认：`50`）
-- `gotoEndpoints.autoIndex`：是否在扩展启动时自动索引（默认：`true`）
-- `gotoEndpoints.usePrefilter`：是否在解析前预过滤不包含控制器注解的文件（默认：`true`）
-- `gotoEndpoints.fileExtensions`：要扫描的文件扩展名（默认：`[".java"]`）
-- `gotoEndpoints.enableDecorations`：是否启用 API 端点的行装饰器（默认：`true`）
-- `gotoEndpoints.enableCodeLens`：是否启用 API 端点的复制按钮（默认：`true`）
-- `gotoEndpoints.notificationTimeout`：通知消息自动关闭的时间（毫秒）（默认：`3000`）
+### Project Structure
 
-## 键盘快捷键
+```
+src/
+├── extension.ts          # Main extension entry point
+├── features/            # Feature implementations
+├── indexer/            # Endpoint indexing logic
+├── parser/             # Java file parsing
+├── utils/              # Utility functions
+└── test/               # Test files
+```
 
-- `Ctrl+Shift+\`（macOS: `Cmd+Shift+\`）：搜索端点
-- `Ctrl+Shift+J`（macOS: `Cmd+Shift+J`）：扫描当前 Java 文件
-- `Ctrl+Shift+K`（macOS: `Cmd+Shift+K`）：扫描整个工作区
+### Submitting Changes
 
-## 性能优化
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-- 扩展仅在打开 Java 文件时激活
-- 使用文件缓存机制，重启 VS Code 后无需重新扫描未更改的文件
-- 支持并发解析，大型项目也能快速建立索引
-- 可自定义排除模式，避免扫描不必要的文件
+## 📝 Changelog
 
-## 注意事项
+See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes.
 
-- 首次打开 Java 项目时，扩展会自动在后台构建端点索引
-- 索引过程为异步进行，大型项目可能需要一些时间
-- 文件修改后会自动更新索引，无需手动刷新
-- 状态栏会显示当前已索引的端点数量
-- 扩展仅处理本地文件系统中的 Java 文件，不支持远程开发环境
+## 🐛 Issues & Support
 
-## 更新日志
+- **Bug Reports**: [GitHub Issues](https://github.com/superjinge/go-to-endpoints/issues)
+- **Feature Requests**: [GitHub Discussions](https://github.com/superjinge/go-to-endpoints/discussions)
+- **Documentation**: [Wiki](https://github.com/superjinge/go-to-endpoints/wiki)
 
-请查看 [CHANGELOG.md](CHANGELOG.md) 文件了解版本更新历史。
+## 📄 License
 
-## 反馈与贡献
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-如发现问题或有功能建议，请在 GitHub 仓库提交 Issue。
-欢迎提交 Pull Request 贡献代码。
+## 🌟 Acknowledgments
 
+- Thanks to all contributors who have helped improve this extension
+- Inspired by the need for better API endpoint management in large Java projects
+- Built with ❤️ for the Java developer community
+
+---
+
+**Made with ❤️ by [superjinge](https://github.com/superjinge)**
+
+*If this extension helps your development workflow, please consider giving it a ⭐ on GitHub and leaving a review on the VS Code Marketplace!* 
