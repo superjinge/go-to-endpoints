@@ -2,7 +2,7 @@
   "name": "go-to-endpoints",
   "displayName": "Go To Endpoints",
   "description": "Quickly search and navigate to Java Controller endpoints with API path copying support.",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "repository": {
     "type": "git",
     "url": "https://github.com/superjinge/go-to-endpoints"
