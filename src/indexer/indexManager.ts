@@ -397,13 +397,13 @@ export class IndexManager {
    * @returns Number of endpoints found in the file, or -1 if file was skipped (not parsed)
    */
   private async parseAndIndexFile(filePath: string): Promise<number> {
-    // console.log(`[GoToEndpoint] parseAndIndexFile called with path: ${filePath}`);
+    console.log(`[GoToEndpoint] parseAndIndexFile called with path: ${filePath}`);
     
     // 检查文件是否需要重新解析
     const needsParsing = await this.shouldParseFile(filePath);
     if (!needsParsing) {
       // 文件没有变化，使用缓存数据
-      // console.log(`[GoToEndpoint] Using cached data for file: ${filePath}`);
+      console.log(`[GoToEndpoint] Using cached data for file: ${filePath}`);
       const cacheEntry = this.cache?.fileData[filePath];
       return cacheEntry?.endpoints.length || 0;
     }
@@ -412,14 +412,19 @@ export class IndexManager {
     try {
       // Check if file still exists before reading
       await fs.access(filePath);
+      console.log(`[GoToEndpoint] File accessed successfully: ${filePath}`);
       
       // 首先检查文件是否可能包含端点
       const fileContent = await fs.readFile(filePath, 'utf-8');
+      console.log(`[GoToEndpoint] File read successfully, size: ${fileContent.length} bytes`);
       
       // 进行预检查，看文件是否包含API端点相关注解
-      if (!this.fileContainsEndpointAnnotations(fileContent)) {
+      const hasAnnotations = this.fileContainsEndpointAnnotations(fileContent);
+      console.log(`[GoToEndpoint] File contains endpoint annotations: ${hasAnnotations}`);
+      
+      if (!hasAnnotations) {
         // 文件不包含任何API端点注解，跳过解析
-        // console.log(`[GoToEndpoint] File does not contain endpoint annotations, skipping: ${filePath}`);
+        console.log(`[GoToEndpoint] File does not contain endpoint annotations, skipping: ${filePath}`);
       
         // 更新缓存信息
         if (this.cache && this.cacheEnabled) {
@@ -433,17 +438,17 @@ export class IndexManager {
         // 从索引中移除此文件
         if (this.index.has(filePath)) {
           this.index.delete(filePath);
-          // console.log(`[GoToEndpoint] Removed ${filePath} from index due to no endpoint annotations`);
+          console.log(`[GoToEndpoint] Removed ${filePath} from index due to no endpoint annotations`);
         }
         
         return -1; // 表示文件被跳过
       }
       
       // 文件可能包含端点，进行解析
-      // console.log(`[GoToEndpoint] Parsing file: ${filePath}`);
+      console.log(`[GoToEndpoint] Starting to parse file: ${filePath}`);
       
       endpoints = await this.parser.parseJavaFile(filePath, fileContent);
-      // console.log(`[GoToEndpoint] Found ${endpoints.length} endpoints in file: ${filePath}`);
+      console.log(`[GoToEndpoint] Parsing completed, found ${endpoints.length} endpoints in file: ${filePath}`);
       
       // 更新缓存
       if (this.cache && this.cacheEnabled) {
@@ -456,18 +461,19 @@ export class IndexManager {
       
       // 调试时输出找到的端点详情
       if (endpoints.length > 0) {
-        // endpoints.forEach((endpoint, index) => {
-        //  console.log(`[GoToEndpoint] Endpoint ${index+1}: ${endpoint.httpMethod} ${endpoint.fullPath} (${endpoint.className}.${endpoint.methodName})`);
-        // });
+        console.log(`[GoToEndpoint] Found endpoints details:`);
+        endpoints.forEach((endpoint, index) => {
+          console.log(`[GoToEndpoint]   ${index+1}. ${endpoint.httpMethod} ${endpoint.fullPath} -> ${endpoint.className}.${endpoint.methodName}`);
+        });
         
         // 存储到索引，使用原始路径
         this.index.set(filePath, endpoints);
-        // console.log(`[GoToEndpoint] Updated index with key: ${filePath}`);
+        console.log(`[GoToEndpoint] Updated index with ${endpoints.length} endpoints for: ${filePath}`);
       } else {
         // Remove from index if no endpoints found (or file became irrelevant)
         if (this.index.has(filePath)) {
         this.index.delete(filePath);
-          // console.log(`[GoToEndpoint] Removed ${filePath} from index due to no endpoints found`);
+          console.log(`[GoToEndpoint] Removed ${filePath} from index due to no endpoints found`);
         }
       }
       
@@ -531,15 +537,25 @@ export class IndexManager {
   /**
    * Updates the index for a changed or newly created file.
    * @param filePath Absolute path of the file.
+   * @param forceRefresh 是否强制刷新（忽略缓存）
    */
-  async updateFile(filePath: string): Promise<void> {
+  async updateFile(filePath: string, forceRefresh: boolean = false): Promise<void> {
     if (this.isBuilding) {
         console.log(`[GoToEndpoint] Index build in progress. Update for ${filePath} skipped, will be handled by build if needed.`);
         return;
     }
-    console.log(`[GoToEndpoint] Updating index for changed file: ${filePath}`);
+    console.log(`[GoToEndpoint] Updating index for changed file: ${filePath}, forceRefresh: ${forceRefresh}`);
+    
+    // 如果强制刷新，先清除该文件的缓存
+    if (forceRefresh && this.cache && this.cache.fileData[filePath]) {
+      console.log(`[GoToEndpoint] Clearing cache for file: ${filePath}`);
+      delete this.cache.fileData[filePath];
+    }
+    
     await this.parseAndIndexFile(filePath);
-    // 注：不需要在此处触发事件，因为parseAndIndexFile已经触发了
+    
+    // 触发索引更新事件
+    this._onIndexUpdated.fire(this.getTotalEndpointsCount());
   }
 
   /**

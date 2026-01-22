@@ -70,7 +70,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	const fileChangeListener = vscode.workspace.onDidSaveTextDocument((document) => {
 		if (document.languageId === 'java') {
 			console.log(`[GoToEndpoint] Java file saved: ${document.uri.fsPath}`);
-			indexManager.updateFile(document.uri.fsPath).then(() => {
+			// 文件保存时强制刷新，因为内容已改变
+			indexManager.updateFile(document.uri.fsPath, true).then(() => {
 				const endpoints = indexManager.getEndpointsForFile(document.uri.fsPath) || [];
 				console.log(`[GoToEndpoint] Auto-updated index for ${document.uri.fsPath}, found ${endpoints.length} endpoints`);
 			});
@@ -87,7 +88,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			// 检查当前文件是否已索引
 			if (!indexManager.getEndpointsForFile(filePath)) {
 				console.log(`[GoToEndpoint] Auto-scanning newly opened Java file: ${filePath}`);
-				indexManager.updateFile(filePath).then(() => {
+				// 自动扫描时不强制刷新，可以使用缓存
+				indexManager.updateFile(filePath, false).then(() => {
 					const endpoints = indexManager.getEndpointsForFile(filePath) || [];
 					console.log(`[GoToEndpoint] Auto-scanned Java file, found ${endpoints.length} endpoints`);
 				});
@@ -113,7 +115,8 @@ export async function activate(context: vscode.ExtensionContext) {
 					const filePath = editor.document.uri.fsPath;
 					progress.report({ message: `扫描文件: ${filePath.split(/[/\\]/).pop()}` });
 					
-					await indexManager.updateFile(filePath);
+					// 手动扫描时强制刷新，忽略缓存
+					await indexManager.updateFile(filePath, true);
 					const endpoints = indexManager.getEndpointsForFile(filePath) || [];
 					showInfo(`扫描完成，在当前文件中找到 ${endpoints.length} 个端点`);
 				} else {

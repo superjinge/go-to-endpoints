@@ -633,7 +633,8 @@ function parseJavaFileWithRegex(filePath: string, fileContent: string): Endpoint
             // Find method level request mappings
             // 修改正则表达式，捕获整个注解包括类型和参数
             const methodRegex = /@((?:Get|Post|Put|Delete|Patch)Mapping|RequestMapping)(\s*\([^)]*\)|\s*)/g;
-            const methodNameRegex = /\s*(public|private|protected)?\s*(?:<[^>]*>)?\s*\w+\s+(\w+)\s*\(/g;
+            // 修复方法名正则，支持泛型返回类型如 ApiResult<String> 或 ApiResult<List<EmrAiInfo>>
+            const methodNameRegex = /\s*(public|private|protected)?\s*(?:static\s+)?(?:<[^>]*>)?\s*[\w<>[\],\s?]+\s+(\w+)\s*\(/g;
             
             let methodMatch;
             let lastIndex = 0;

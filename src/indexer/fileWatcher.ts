@@ -21,7 +21,8 @@ export class FileWatcher {
 
     constructor(private indexManager: IndexManager, private debounceDelay: number = 500) {
         // Debounce updates and deletions to avoid excessive processing during rapid file changes
-        this.debouncedUpdate = debounce(this.indexManager.updateFile.bind(this.indexManager), this.debounceDelay);
+        // 文件监视器检测到变化时，强制刷新（forceRefresh: true）
+        this.debouncedUpdate = debounce((filePath: string) => this.indexManager.updateFile(filePath, true), this.debounceDelay);
         // Use debounce for remove as well for consistency, although less critical
         this.debouncedRemove = debounce(this.indexManager.removeFile.bind(this.indexManager), this.debounceDelay);
     }
