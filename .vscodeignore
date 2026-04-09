@@ -17,3 +17,4 @@ vsc-extension-quickstart.md
 BEFORE_PUBLISH.md
 TaskProgress.md
 .cursorindexingignore
+test/**

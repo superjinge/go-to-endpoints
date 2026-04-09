@@ -228,6 +228,6 @@
   "dependencies": {
     "@types/minimatch": "^5.1.2",
     "java-parser": "^2.3.3",
-    "minimatch": "^10.0.1"
+    "minimatch": "^10.2.1"
   }
 }

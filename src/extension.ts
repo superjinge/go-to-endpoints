@@ -85,8 +85,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			const filePath = editor.document.uri.fsPath;
 			console.log(`[GoToEndpoint] Active editor changed to Java file: ${filePath}`);
 			
-			// 检查当前文件是否已索引
-			if (!indexManager.getEndpointsForFile(filePath)) {
+			// 仅当从未进入过索引（undefined）时自动扫描；已索引但为 [] 表示已解析无端点，避免反复扫
+			if (indexManager.getEndpointsForFile(filePath) === undefined) {
 				console.log(`[GoToEndpoint] Auto-scanning newly opened Java file: ${filePath}`);
 				// 自动扫描时不强制刷新，可以使用缓存
 				indexManager.updateFile(filePath, false).then(() => {

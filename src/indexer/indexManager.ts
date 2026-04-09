@@ -31,7 +31,7 @@ export class IndexManager {
   
   // 缓存相关属性
   private cache: EndpointCache | null = null;
-  private readonly CACHE_VERSION = '1.0.0';
+  private readonly CACHE_VERSION = '1.0.1';
   private readonly CACHE_FILE_NAME = 'endpoints-cache.json';
   private cacheEnabled: boolean = true; // 是否启用缓存
   
@@ -109,11 +109,9 @@ export class IndexManager {
       this.cache = cache;
       console.log(`[GoToEndpoint] Loaded cache with ${Object.keys(cache.fileData).length} files`);
       
-      // 将缓存数据恢复到索引中
+      // 将缓存数据恢复到索引中（含 0 端点，避免 getEndpointsForFile 误认为「从未扫描」）
       for (const [filePath, cacheEntry] of Object.entries(this.cache.fileData)) {
-        if (cacheEntry.endpoints.length > 0) {
-          this.index.set(filePath, cacheEntry.endpoints);
-        }
+        this.index.set(filePath, cacheEntry.endpoints ?? []);
       }
       
       console.log(`[GoToEndpoint] Restored ${this.index.size} files from cache`);
@@ -210,12 +208,11 @@ export class IndexManager {
         return true; // 文件被修改过，需要重新解析
       }
       
-      // 文件没有变化，不需要重新解析
-      // 直接从缓存恢复索引
-      if (cacheEntry.endpoints.length > 0 && !this.index.has(filePath)) {
-        this.index.set(filePath, cacheEntry.endpoints);
+      // 文件没有变化，不需要重新解析；把缓存同步进内存索引（含空数组）
+      if (!this.index.has(filePath)) {
+        this.index.set(filePath, cacheEntry.endpoints ?? []);
       }
-      
+
       return false;
     } catch (error) {
       // 发生错误，安全起见重新解析
@@ -470,11 +467,9 @@ export class IndexManager {
         this.index.set(filePath, endpoints);
         console.log(`[GoToEndpoint] Updated index with ${endpoints.length} endpoints for: ${filePath}`);
       } else {
-        // Remove from index if no endpoints found (or file became irrelevant)
-        if (this.index.has(filePath)) {
-        this.index.delete(filePath);
-          console.log(`[GoToEndpoint] Removed ${filePath} from index due to no endpoints found`);
-        }
+        // 保留空数组，表示「已扫描但无端点」，避免 getEndpointsForFile 为 undefined 导致永不刷新
+        this.index.set(filePath, []);
+        console.log(`[GoToEndpoint] Indexed ${filePath} with 0 endpoints`);
       }
       
       return endpoints.length;
