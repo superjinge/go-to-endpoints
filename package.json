@@ -2,7 +2,7 @@
   "name": "go-to-endpoints",
   "displayName": "%package.displayName%",
   "description": "%package.description%",
-  "version": "0.0.7",
+  "version": "0.0.9",
   "repository": {
     "type": "git",
     "url": "https://github.com/superjinge/go-to-endpoints"
