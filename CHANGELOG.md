@@ -4,7 +4,17 @@ All notable changes to the "go-to-endpoints" extension will be documented in thi
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [0.0.7] - Latest Release
+## [0.0.9] - Latest Release
+
+### Added
+- **`gotoEndpoints.displayLanguage`**: choose `en` (default) or `zh-cn` for runtime UI (notifications, progress, CodeLens, status bar, Quick Pick, endpoint tree).
+- **`package.nls.json` / `package.nls.zh-cn.json`**: translated command titles, view labels, and settings descriptions (follow VS Code display language when a language pack is installed).
+
+### Changed
+- User-visible runtime strings route through the bundled i18n JSON; switching `displayLanguage` refreshes the status bar, tree, and CodeLens without a full reload.
+- Documentation images: `resources/preview.png` targets English UI for the English README; `resources/preview-zh.png` is used for Chinese README and store copy.
+
+## [0.0.7]
 
 ### Added
 - Enhanced endpoint search with real-time results display
