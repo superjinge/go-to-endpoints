@@ -13,6 +13,8 @@ Streamline your Java development workflow by instantly locating and managing API
 
 ![Preview](https://raw.githubusercontent.com/superjinge/go-to-endpoints/main/resources/preview.png)
 
+*(Preview shows English UI: VS Code display language English and extension `displayLanguage` `en`. For a Chinese UI example see [README_CN.md](README_CN.md).)*
+
 ## Language / 语言
 
 - **Runtime UI** (notifications, progress, CodeLens, status bar, quick pick): set **`Go To Endpoints: Display Language`** (`gotoEndpoints.displayLanguage`) to `en` (default) or `zh-cn`.

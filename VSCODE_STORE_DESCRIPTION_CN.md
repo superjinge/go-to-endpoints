@@ -2,7 +2,7 @@
 
 **告别在无数控制器文件中翻找的痛苦！** Go To Endpoints是专为使用Spring框架的Java开发者打造的终极VS Code扩展。在大型项目中瞬间查找、导航和管理API端点。
 
-![扩展预览](https://raw.githubusercontent.com/superjinge/go-to-endpoints/main/resources/preview.png)
+![扩展预览](https://raw.githubusercontent.com/superjinge/go-to-endpoints/main/resources/preview-zh.png)
 
 ## 🚀 为什么你会爱上这个扩展
 

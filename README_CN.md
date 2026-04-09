@@ -9,7 +9,7 @@
 
 通过即时定位和管理大型Spring项目中的API端点，简化您的Java开发工作流程。告别在无数控制器文件中手动搜索的烦恼！
 
-![预览图](https://raw.githubusercontent.com/superjinge/go-to-endpoints/main/resources/preview.png)
+![预览图](https://raw.githubusercontent.com/superjinge/go-to-endpoints/main/resources/preview-zh.png)
 
 ## 语言设置
 
