@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { IndexManager } from '../indexer/indexManager';
 import { EndpointInfo } from '../parser/models';
+import { t } from '../i18n';
 
 const LOG_LEVEL = 'info'; // 'debug' | 'info' | 'warn' | 'error'
 
@@ -49,12 +50,15 @@ export class SearchProvider {
             // 检查是否有任何已扫描的端点
             const totalEndpoints = this.indexManager.getTotalEndpointsCount();
             if (totalEndpoints === 0) {
+                const scanLabel = t('search.scanCurrentFile');
+                const cancelLabel = t('common.cancel');
                 const result = await vscode.window.showInformationMessage(
-                    '未找到任何已扫描的端点。请先使用"Go To Endpoint: 扫描当前Java文件"命令扫描文件。',
-                    '扫描当前文件', '取消'
+                    t('search.noEndpointsPrompt'),
+                    scanLabel,
+                    cancelLabel
                 );
                 
-                if (result === '扫描当前文件') {
+                if (result === scanLabel) {
                     vscode.commands.executeCommand('gotoEndpoints.scanCurrentFile');
                 }
                 return;
@@ -62,26 +66,26 @@ export class SearchProvider {
             
             // 创建 QuickPick 实例
             const quickPick = vscode.window.createQuickPick<vscode.QuickPickItem & { endpointData?: EndpointInfo }>();
-            quickPick.placeholder = '/users/get or getUserById';
-            quickPick.title = 'Search Java Endpoints';
+            quickPick.placeholder = t('search.placeholder');
+            quickPick.title = t('search.title');
             quickPick.matchOnDescription = true;
             quickPick.matchOnDetail = true;
             
             // 初始状态显示加载中
             quickPick.busy = false;
             quickPick.items = [{
-                label: '$(search) 请输入搜索关键词...',
+                label: t('search.enterKeyword'),
                 description: '',
-                detail: '输入后将自动搜索匹配的端点'
+                detail: t('search.enterKeywordDetail')
             }];
             
             // 创建一个防抖的搜索函数，避免频繁搜索
             const performSearch = debounce(async (searchQuery: string) => {
                 if (!searchQuery || searchQuery.trim().length === 0) {
                     quickPick.items = [{
-                        label: '$(search) 请输入搜索关键词...',
+                        label: t('search.enterKeyword'),
                         description: '',
-                        detail: '输入后将自动搜索匹配的端点'
+                        detail: t('search.enterKeywordDetail')
                     }];
                     quickPick.busy = false;
                     return;
@@ -97,9 +101,9 @@ export class SearchProvider {
                 // 更新提示文字
                 if (results.length === 0) {
                     quickPick.items = [{
-                        label: `$(search) 未找到匹配 "${searchQuery}" 的端点`,
+                        label: t('search.noMatch', { query: searchQuery }),
                         description: '',
-                        detail: '尝试其他关键词或修改搜索条件'
+                        detail: t('search.tryOtherDetail')
                     }];
                 } else {
                     // 转换搜索结果为 QuickPickItem
@@ -146,7 +150,7 @@ export class SearchProvider {
                         log('info', `[GoToEndpoint] Successfully navigated to selected endpoint in ${endpoint.filePath}`);
                     } catch (error) {
                         log('error', `[GoToEndpoint] Error opening file ${endpoint.filePath}:`, error);
-                        vscode.window.showErrorMessage(`GoToEndpoint: Failed to open file: ${endpoint.filePath}`);
+                        vscode.window.showErrorMessage(t('search.openFileFailed', { path: endpoint.filePath }));
                     }
                 } else {
                     log('info', '[GoToEndpoint] No endpoint selected by user or selection invalid');

@@ -8,16 +8,13 @@ import { IndexManager } from './indexer/indexManager';
 import { FileWatcher } from './indexer/fileWatcher'; // 启用文件监听
 import { SearchProvider } from './features/searchProvider'; // Only import SearchProvider
 import { EndpointCodeLensProvider, registerCodeLensCommand } from './features/codeLensProvider';
-// Remove old/incorrect imports
-// import { registerScanCurrentFileCommand } from './features/scanCurrentFile'; 
-// import { registerScanWorkspaceCommand } from './features/scanWorkspace'; // Assuming this is not needed or handled elsewhere
-// import { showSearchInput } from './features/search'; // Removed incorrect import path
-// import { scanAndNavigateToFile } from './features/scanCurrentFile';
 import { EndpointTreeProvider, registerEndpointTreeCommands } from './features/endpointTreeProvider';
 import { showInfo, showWarning, showError } from './utils/messageUtils';
+import { initI18n, t } from './i18n';
 
 let fileWatcher: FileWatcher | null = null; // 启用文件监听变量
 let statusBarItem: vscode.StatusBarItem;
+let lastEndpointCount = 0;
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -28,7 +25,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	// 创建状态栏项目
 	statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
 	statusBarItem.command = 'gotoEndpoints.search'; // This command is registered by SearchProvider
-	statusBarItem.tooltip = 'Go To Endpoint: 搜索端点'; // Chinese tooltip
 	updateStatusBar(0);
 	statusBarItem.show();
 	context.subscriptions.push(statusBarItem);
@@ -40,14 +36,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	indexManager.onIndexUpdated((count) => {
 		updateStatusBar(count);
 	});
-
-	// 注释掉自动构建索引的代码，只在用户手动触发时构建
-	// 2. Start initial index build (asynchronously)
-	// indexManager.buildIndex().then(() => {
-	// 	console.log('[GoToEndpoint] Initial index build completed in background.');
-	// }).catch(error => {
-	// 	console.error("[GoToEndpoint] Initial index build failed:", error);
-	// });
 
 	// 3. Initialize SearchProvider and register its command
 	const searchProvider = new SearchProvider(indexManager);
@@ -106,25 +94,26 @@ export async function activate(context: vscode.ExtensionContext) {
 	const scanDisposable = vscode.commands.registerCommand('gotoEndpoints.scanCurrentFile', () => {
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification, 
-			title: '扫描当前Java文件中...',
+			title: t('scan.current.progressTitle'),
 			cancellable: false
 		}, async (progress) => {
 			try {
 				const editor = vscode.window.activeTextEditor;
 				if (editor && editor.document.languageId === 'java') {
 					const filePath = editor.document.uri.fsPath;
-					progress.report({ message: `扫描文件: ${filePath.split(/[/\\]/).pop()}` });
+					const fileName = filePath.split(/[/\\]/).pop() ?? filePath;
+					progress.report({ message: t('scan.current.progressFile', { fileName }) });
 					
 					// 手动扫描时强制刷新，忽略缓存
 					await indexManager.updateFile(filePath, true);
 					const endpoints = indexManager.getEndpointsForFile(filePath) || [];
-					showInfo(`扫描完成，在当前文件中找到 ${endpoints.length} 个端点`);
+					showInfo(t('scan.current.done', { count: endpoints.length }));
 				} else {
-					showWarning('没有打开的Java文件，请先打开Java文件');
+					showWarning(t('scan.current.noJavaFile'));
 				}
 			} catch (error: any) {
 				console.error('[GoToEndpoint] 扫描当前文件失败:', error);
-				showError(`扫描失败: ${error?.message || '未知错误'}`);
+				showError(t('scan.current.error', { detail: error?.message || t('common.unknownError') }));
 			}
 		});
 	});
@@ -135,10 +124,10 @@ export async function activate(context: vscode.ExtensionContext) {
 	const scanWorkspaceDisposable = vscode.commands.registerCommand('gotoEndpoints.scanWorkspace', () => {
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
-			title: '扫描工作区中...',
+			title: t('scan.workspace.progressTitle'),
 			cancellable: true
 		}, async (progress, token) => {
-			progress.report({ message: '开始扫描Java文件' });
+			progress.report({ message: t('scan.workspace.progressStart') });
 			try {
 				// 首先清空缓存
 				console.log('[GoToEndpoint] 清除缓存并重建索引...');
@@ -159,11 +148,11 @@ export async function activate(context: vscode.ExtensionContext) {
 				
 				// 然后重建索引
 				await indexManager.buildIndex(token);
-				showInfo(`扫描完成，找到 ${indexManager.getEndpointCount()} 个端点`);
+				showInfo(t('scan.workspace.done', { count: indexManager.getEndpointCount() }));
 			} catch (error: any) {  // 显式类型标注
 				if (!token.isCancellationRequested) {
-					const errorMessage = error?.message || '未知错误';
-					showError(`扫描失败: ${errorMessage}`);
+					const errorMessage = error?.message || t('common.unknownError');
+					showError(t('scan.workspace.error', { detail: errorMessage }));
 				}
 			}
 		});
@@ -173,18 +162,20 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// 注册清除缓存并重新扫描的命令
 	const clearCacheDisposable = vscode.commands.registerCommand('gotoEndpoints.clearCacheAndRebuild', () => {
-		// 首先询问用户是否确定要清除缓存
+		const ok = t('common.ok');
+		const cancel = t('common.cancel');
 		vscode.window.showWarningMessage(
-			'确定要清除缓存并重新扫描吗？这将删除所有缓存并重新解析所有文件，可能需要较长时间。', 
-			'确定', '取消'
+			t('dialog.clearCache.confirm'),
+			ok,
+			cancel
 		).then(selection => {
-			if (selection === '确定') {
+			if (selection === ok) {
 				vscode.window.withProgress({
 					location: vscode.ProgressLocation.Notification,
-					title: '清除缓存并重建索引...',
+					title: t('clearCache.progressTitle'),
 					cancellable: true
 				}, async (progress, token) => {
-					progress.report({ message: '正在清除缓存' });
+					progress.report({ message: t('clearCache.clearing') });
 					try {
 						// 清空缓存
 						console.log('[GoToEndpoint] 清除缓存并重建索引...');
@@ -204,13 +195,13 @@ export async function activate(context: vscode.ExtensionContext) {
 						}
 						
 						// 然后重建索引
-						progress.report({ message: '重新扫描所有Java文件' });
+						progress.report({ message: t('clearCache.rescanning') });
 						await indexManager.buildIndex(token);
-						showInfo(`缓存已清除，重新扫描完成，找到 ${indexManager.getEndpointCount()} 个端点`);
+						showInfo(t('clearCache.done', { count: indexManager.getEndpointCount() }));
 					} catch (error: any) {
 						if (!token.isCancellationRequested) {
-							const errorMessage = error?.message || '未知错误';
-							showError(`清除缓存失败: ${errorMessage}`);
+							const errorMessage = error?.message || t('common.unknownError');
+							showError(t('clearCache.error', { detail: errorMessage }));
 						}
 					}
 				});
@@ -232,10 +223,18 @@ export async function activate(context: vscode.ExtensionContext) {
 	registerEndpointTreeCommands(context, endpointTreeProvider);
 	console.log('[GoToEndpoint] Endpoint tree view registered.');
 
+	context.subscriptions.push(
+		initI18n(() => {
+			updateStatusBar(lastEndpointCount);
+			endpointTreeProvider.refresh();
+			codeLensProvider.onDisplayLanguageChanged();
+		})
+	);
+
 	console.log('[GoToEndpoint] Extension activated successfully.'); // Simplified message
 
 	// 添加提示，告知用户插件已启动
-	showInfo('Go To Endpoints 已启动！性能优化模式已启用：仅显示当前Java文件的端点。右键点击Java文件选择"扫描当前Java文件"，或使用Ctrl+Shift+J快捷键立即扫描。');
+	showInfo(t('activation.hint'));
 }
 
 /**
@@ -243,7 +242,9 @@ export async function activate(context: vscode.ExtensionContext) {
  * @param count 已索引的端点数量
  */
 function updateStatusBar(count: number): void {
-	statusBarItem.text = `$(search) 端点: ${count}`; // Chinese text
+	lastEndpointCount = count;
+	statusBarItem.text = `$(search) ${t('statusBar.text', { count })}`;
+	statusBarItem.tooltip = t('statusBar.tooltip');
 }
 
 // This method is called when your extension is deactivated

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { IndexManager } from '../indexer/indexManager';
 import { EndpointInfo } from '../parser/models';
+import { t } from '../i18n';
 
 // Define a custom QuickPick item that holds the EndpointInfo
 interface EndpointQuickPickItem extends vscode.QuickPickItem {
@@ -15,13 +16,13 @@ interface EndpointQuickPickItem extends vscode.QuickPickItem {
 export async function scanAndNavigateToFile(indexManager: IndexManager) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        vscode.window.showInformationMessage('No active editor found.');
+        vscode.window.showInformationMessage(t('scanCurrentFile.noEditor'));
         return;
     }
 
     const document = editor.document;
     if (!document.languageId.includes('java')) {
-        vscode.window.showInformationMessage('Current file is not a Java file.');
+        vscode.window.showInformationMessage(t('scanCurrentFile.notJava'));
         return;
     }
 
@@ -67,9 +68,9 @@ export async function scanAndNavigateToFile(indexManager: IndexManager) {
             
             // 如果任何一个注解存在，显示警告
             if (annotationResults.some(result => result)) {
-                vscode.window.showWarningMessage('File appears to contain endpoint annotations, but no endpoints were found. See logs for details.');
+                vscode.window.showWarningMessage(t('scanCurrentFile.annotationNoMatch'));
             } else {
-                vscode.window.showInformationMessage('No endpoints found in current file.');
+                vscode.window.showInformationMessage(t('scanCurrentFile.none'));
             }
         return;
     }
@@ -86,7 +87,7 @@ export async function scanAndNavigateToFile(indexManager: IndexManager) {
 
         // 显示QuickPick
         const selectedItem = await vscode.window.showQuickPick(items, {
-            placeHolder: 'Select an endpoint to navigate to'
+            placeHolder: t('scanCurrentFile.quickPickPlaceholder')
     });
 
         if (selectedItem) {
@@ -101,6 +102,8 @@ export async function scanAndNavigateToFile(indexManager: IndexManager) {
         }
         } catch (error) {
         console.error(`[GoToEndpoint] Error during file scan:`, error);
-        vscode.window.showErrorMessage(`Error scanning file: ${error instanceof Error ? error.message : String(error)}`);
+        vscode.window.showErrorMessage(t('scanCurrentFile.scanError', {
+            detail: error instanceof Error ? error.message : String(error)
+        }));
     }
 } 

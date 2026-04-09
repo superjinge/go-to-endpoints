@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { IndexManager } from '../indexer/indexManager';
 import { EndpointInfo } from '../parser/models';
+import { t } from '../i18n';
 
 /**
  * 端点树节点类型
@@ -34,7 +35,6 @@ export class EndpointTreeItem extends vscode.TreeItem {
         switch (type) {
             case EndpointTreeItemType.Root:
                 this.iconPath = new vscode.ThemeIcon('list-tree');
-                this.tooltip = '当前文件端点';
                 break;
             case EndpointTreeItemType.PathGroup:
                 this.iconPath = new vscode.ThemeIcon('folder');
@@ -50,7 +50,7 @@ export class EndpointTreeItem extends vscode.TreeItem {
                     // 设置命令，点击时跳转到定义
                     this.command = {
                         command: 'gotoEndpoints.openEndpoint',
-                        title: '打开端点定义',
+                        title: t('tree.openEndpointCommand'),
                         arguments: [endpoint]
                     };
                 }
@@ -65,7 +65,7 @@ export class EndpointTreeItem extends vscode.TreeItem {
                     // 设置命令，点击时跳转到定义
                     this.command = {
                         command: 'gotoEndpoints.openEndpoint',
-                        title: '打开端点定义',
+                        title: t('tree.openEndpointCommand'),
                         arguments: [endpoint]
                     };
                 }
@@ -173,13 +173,13 @@ export class EndpointTreeProvider implements vscode.TreeDataProvider<EndpointTre
     private getRootItems(): EndpointTreeItem[] {
         // 如果没有当前文件或当前文件不是Java文件，显示提示
         if (!this.currentFilePath) {
-            return [
-                new EndpointTreeItem(
-                    '没有打开Java文件',
-                    EndpointTreeItemType.Root,
-                    vscode.TreeItemCollapsibleState.None
-                )
-            ];
+            const empty = new EndpointTreeItem(
+                t('tree.noJavaFile'),
+                EndpointTreeItemType.Root,
+                vscode.TreeItemCollapsibleState.None
+            );
+            empty.tooltip = t('tree.noJavaFile');
+            return [empty];
         }
         
         // 获取当前文件的端点
@@ -204,14 +204,13 @@ export class EndpointTreeProvider implements vscode.TreeDataProvider<EndpointTre
         
         if (!endpoints || endpoints.length === 0) {
             const fileName = this.currentFilePath.split(/[/\\]/).pop() || '';
-            // 没有端点时显示提示
-            return [
-                new EndpointTreeItem(
-                    `文件 ${fileName} 中没有找到端点`,
-                    EndpointTreeItemType.Root,
-                    vscode.TreeItemCollapsibleState.None
-                )
-            ];
+            const none = new EndpointTreeItem(
+                t('tree.noEndpointsInFile', { fileName }),
+                EndpointTreeItemType.Root,
+                vscode.TreeItemCollapsibleState.None
+            );
+            none.tooltip = t('tree.noEndpointsInFile', { fileName });
+            return [none];
         }
 
         // 按路径分组构建树
@@ -222,7 +221,7 @@ export class EndpointTreeProvider implements vscode.TreeDataProvider<EndpointTre
      * 构建路径树
      */
     private buildPathTree(endpoints: EndpointInfo[]): EndpointTreeItem[] {
-        const fileName = this.currentFilePath?.split(/[/\\]/).pop() || '当前文件';
+        const fileName = this.currentFilePath?.split(/[/\\]/).pop() || t('tree.currentFilePlaceholder');
         
         // 按照路径分组
         const pathGroups: { [path: string]: EndpointInfo[] } = {};
@@ -245,15 +244,15 @@ export class EndpointTreeProvider implements vscode.TreeDataProvider<EndpointTre
             return this.createPathGroupNode(pathKey, pathKey, pathGroups[pathKey]);
         });
         
-        return [
-            new EndpointTreeItem(
-                `${fileName} 端点 (${endpoints.length})`,
-                EndpointTreeItemType.Root,
-                vscode.TreeItemCollapsibleState.Expanded,
-                undefined,
-                childrenItems
-            )
-        ];
+        const root = new EndpointTreeItem(
+            t('tree.fileEndpointsHeader', { fileName, count: endpoints.length }),
+            EndpointTreeItemType.Root,
+            vscode.TreeItemCollapsibleState.Expanded,
+            undefined,
+            childrenItems
+        );
+        root.tooltip = t('tree.rootTooltip');
+        return [root];
     }
 
     /**

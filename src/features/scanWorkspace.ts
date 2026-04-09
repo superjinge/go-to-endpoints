@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { IndexManager } from '../indexer/indexManager';
+import { t } from '../i18n';
 
 /**
  * 注册扫描整个工作区的命令
@@ -11,22 +12,23 @@ export function registerScanWorkspaceCommand(context: vscode.ExtensionContext, i
         try {
             // 确保有打开的工作区
             if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
-                vscode.window.showInformationMessage('没有打开的工作区，请先打开一个项目');
+                vscode.window.showInformationMessage(t('scanWorkspace.noWorkspace'));
                 return;
             }
 
-            // 提示用户这可能需要一些时间
+            const cont = t('common.continue');
+            const cancel = t('common.cancel');
             const proceed = await vscode.window.showInformationMessage(
-                '将扫描整个工作区以查找端点，对于大型项目这可能需要一些时间。是否继续？',
-                '继续', '取消'
+                t('scanWorkspace.confirmScan'),
+                cont,
+                cancel
             );
 
-            if (proceed !== '继续') {
+            if (proceed !== cont) {
                 return;
             }
 
-            // 开始构建索引
-            vscode.window.showInformationMessage('开始扫描工作区...');
+            vscode.window.showInformationMessage(t('scanWorkspace.starting'));
             console.log('[GoToEndpoint] Starting workspace scan via command');
             
             await indexManager.buildIndex();
@@ -34,7 +36,7 @@ export function registerScanWorkspaceCommand(context: vscode.ExtensionContext, i
             console.log('[GoToEndpoint] Workspace scan completed');
         } catch (error) {
             console.error('[GoToEndpoint] Error scanning workspace:', error);
-            vscode.window.showErrorMessage('扫描工作区时出错');
+            vscode.window.showErrorMessage(t('scanWorkspace.error'));
         }
     });
     

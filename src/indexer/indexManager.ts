@@ -4,6 +4,7 @@ import { AstJavaParser } from '../parser/astJavaParser';
 import * as fs from 'fs/promises'; // Use promises API for async file reading
 import { CancellationToken } from 'vscode';
 import * as path from 'path';
+import { t } from '../i18n';
 
 // 缓存数据结构接口
 interface EndpointCache {
@@ -237,7 +238,7 @@ export class IndexManager {
         await vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Window,
-            title: 'GoToEndpoint: Indexing Java endpoints...',
+            title: t('index.building.windowTitle'),
             cancellable: true, // Support cancellation
           },
           async (progress) => {
@@ -249,7 +250,7 @@ export class IndexManager {
               console.log(`[GoToEndpoint] Include patterns: ${JSON.stringify(includePatterns)}`);
               console.log(`[GoToEndpoint] Exclude pattern: ${excludePattern}`);
               
-              progress.report({ message: 'Finding Java files...', increment: 0 });
+              progress.report({ message: t('index.findingFiles'), increment: 0 });
 
               // Use findFiles correctly with multiple include patterns and a single exclude pattern string
               let allJavaFiles: vscode.Uri[] = [];
@@ -266,7 +267,7 @@ export class IndexManager {
 
               const totalFiles = allJavaFiles.length;
               console.log(`[GoToEndpoint] Total unique Java files found: ${totalFiles}`);
-              progress.report({ message: `Found ${totalFiles} files. Parsing...`, increment: 10 });
+              progress.report({ message: t('index.foundFiles', { total: totalFiles }), increment: 10 });
 
               console.log(`[GoToEndpoint] Starting index build for ${totalFiles} files.`);
 
@@ -316,7 +317,13 @@ export class IndexManager {
                     if (processedCount % 100 === 0 || processedCount === totalFiles) {
                       const progressPercentage = (processedCount / totalFiles) * 90;
                       progress.report({ 
-                        message: `Processed ${processedCount}/${totalFiles} files (${cachedCount} cached, ${skippedCount} skipped), found ${endpointCount} endpoints...`, 
+                        message: t('index.progress', {
+                          processed: processedCount,
+                          total: totalFiles,
+                          cached: cachedCount,
+                          skipped: skippedCount,
+                          endpoints: endpointCount
+                        }),
                         increment: progressPercentage - (processedCount - 1) / totalFiles * 90 
                       });
                     }
@@ -340,7 +347,13 @@ export class IndexManager {
                     if (processedCount % 100 === 0 || processedCount === totalFiles) {
                       const progressPercentage = (processedCount / totalFiles) * 90;
                       progress.report({ 
-                        message: `Processed ${processedCount}/${totalFiles} files (${cachedCount} cached, ${skippedCount} skipped), found ${endpointCount} endpoints...`, 
+                        message: t('index.progress', {
+                          processed: processedCount,
+                          total: totalFiles,
+                          cached: cachedCount,
+                          skipped: skippedCount,
+                          endpoints: endpointCount
+                        }),
                         increment: progressPercentage - (processedCount - 1) / totalFiles * 90 
                       });
                     }
@@ -368,17 +381,17 @@ export class IndexManager {
               // 如果无法匹配端点，显示警告
               if (totalEndpoints === 0 && totalFiles > 0) {
                 console.warn("[GoToEndpoint] No endpoints found in any Java files. Check if files contain Spring Controller or Feign Client annotations.");
-                vscode.window.showWarningMessage("GoToEndpoint: No endpoints found in Java files. Ensure project contains Spring Controller or Feign Client annotations.");
+                vscode.window.showWarningMessage(t('index.noEndpointsWarning'));
               }
             } catch (error) {
               console.error('[GoToEndpoint] Error during index build execution:', error);
-              vscode.window.showErrorMessage('GoToEndpoint: Failed to build endpoint index. See console for details.');
+              vscode.window.showErrorMessage(t('index.buildFailed'));
             }
           }
         );
     } catch (error) {
         console.error('[GoToEndpoint] Error setting up index build progress:', error);
-        vscode.window.showErrorMessage('GoToEndpoint: Failed to start index build process.');
+        vscode.window.showErrorMessage(t('index.startFailed'));
     } finally {
         this.isBuilding = false;
         console.log("[GoToEndpoint] Index build process finished.");
@@ -578,7 +591,7 @@ export class IndexManager {
   search(query: string): EndpointInfo[] {
     if (this.isBuilding) {
         console.log('[GoToEndpoint] Search executed while index is still building');
-        vscode.window.showWarningMessage("GoToEndpoint: Index is currently being built. Search results may be incomplete.");
+        vscode.window.showWarningMessage(t('index.searchWhileBuilding'));
     }
 
     console.log(`[GoToEndpoint] Search starting with query: "${query}"`);
@@ -819,7 +832,7 @@ export class IndexManager {
     // 重新构建索引
     this.buildIndex().then(() => {
       console.log('[GoToEndpoint] 索引重建完成');
-      vscode.window.showInformationMessage('GoToEndpoint: 缓存已清除，索引重建完成');
+      vscode.window.showInformationMessage(t('index.cacheClearedDone'));
     });
   }
 

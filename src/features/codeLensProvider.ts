@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { IndexManager } from '../indexer/indexManager';
 import { EndpointInfo } from '../parser/models';
 import { showInfo } from '../utils/messageUtils';
+import { t } from '../i18n';
 
 const COPY_COMMAND_ID = 'gotoEndpoints.copyPath';
 
@@ -65,6 +66,12 @@ export class EndpointCodeLensProvider implements vscode.CodeLensProvider {
         });
         
         // 初始更新当前编辑器的装饰器
+        this.updateDecorations();
+    }
+
+    /** Refresh CodeLens and decorations when display language changes */
+    public onDisplayLanguageChanged(): void {
+        this._onDidChangeCodeLenses.fire();
         this.updateDecorations();
     }
 
@@ -157,8 +164,8 @@ export class EndpointCodeLensProvider implements vscode.CodeLensProvider {
                 const decoration: vscode.DecorationOptions = {
                     range: fullLineRange,
                     hoverMessage: new vscode.MarkdownString(
-                        `**API路径:** ${endpoint.fullPath}\n\n` +
-                        `**HTTP方法:** ${endpoint.httpMethod}`
+                        `**${t('codelens.hover.path')}:** ${endpoint.fullPath}\n\n` +
+                        `**${t('codelens.hover.method')}:** ${endpoint.httpMethod}`
                     )
                 };
                 
@@ -277,8 +284,8 @@ export class EndpointCodeLensProvider implements vscode.CodeLensProvider {
                 
                 // 代码前命令 - 详细版
                 const indentCommand: vscode.Command = {
-                    title: `$(clippy) 复制 [${displayMethod}]`,
-                    tooltip: `复制路径: ${pathToCopy}`,
+                    title: t('codelens.copyTitle', { method: displayMethod }),
+                    tooltip: t('codelens.copyTooltip', { path: pathToCopy }),
                     command: COPY_COMMAND_ID,
                     arguments: [pathToCopy, httpMethod, endpoint.className, endpoint.methodName, endpoint.originalClassPath, endpoint.originalMethodPath]
                 };
@@ -401,11 +408,8 @@ export function registerCodeLensCommand(context: vscode.ExtensionContext) {
             // 将修正后的路径复制到剪贴板
             vscode.env.clipboard.writeText(finalPath);
             
-            // 构建更详细的消息
-            let message = `路径已复制到剪贴板: ${finalPath}`;
-            if (method) {
-                message += ` [${method}]`;
-            }
+            const methodSuffix = method ? ` [${method}]` : '';
+            const message = t('codelens.copied', { path: finalPath, methodSuffix });
             
             // 构建详细信息
             let detail = undefined;
