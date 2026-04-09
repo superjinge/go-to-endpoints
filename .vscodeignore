@@ -18,3 +18,4 @@ BEFORE_PUBLISH.md
 TaskProgress.md
 .cursorindexingignore
 test/**
+docs/**
