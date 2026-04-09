@@ -13,6 +13,11 @@ Streamline your Java development workflow by instantly locating and managing API
 
 ![Preview](https://raw.githubusercontent.com/superjinge/go-to-endpoints/main/resources/preview.png)
 
+## Language / 语言
+
+- **Runtime UI** (notifications, progress, CodeLens, status bar, quick pick): set **`Go To Endpoints: Display Language`** (`gotoEndpoints.displayLanguage`) to `en` (default) or `zh-cn`.
+- **Command titles, view names, and settings descriptions** follow the **VS Code display language** when a matching language pack is installed (via `package.nls`).
+
 ## ✨ Features
 
 ### 🔍 **Smart Endpoint Search**

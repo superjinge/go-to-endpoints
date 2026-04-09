@@ -11,6 +11,11 @@
 
 ![预览图](https://raw.githubusercontent.com/superjinge/go-to-endpoints/main/resources/preview.png)
 
+## 语言设置
+
+- **运行时界面**（通知、进度、CodeLens、状态栏、快速选择）：在设置中将 **`Go To Endpoints: Display Language`**（`gotoEndpoints.displayLanguage`）设为 `en`（默认）或 `zh-cn`。
+- **命令名称、视图标题、各配置项说明**：随 **VS Code 显示语言** 变化（需安装对应语言包，见 `package.nls`）。
+
 ## ✨ 功能特性
 
 ### 🔍 **智能端点搜索**
