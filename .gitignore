@@ -32,3 +32,6 @@ META-INF/
 /.vscode/*
 /.specstory/*
 test/**
+docs/**
+!docs/go-to-endpoints-i18n-design.md
+!docs/go-to-endpoints-i18n-plan.md
